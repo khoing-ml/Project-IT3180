@@ -1,0 +1,14 @@
+{
+  "name": "bluemoon-backend",
+  "version": "0.1.0",
+  "description": "Backend API for BlueMoon apartment management system",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["apartment", "management", "api"],
+  "author": "",
+  "license": "ISC"
+}
