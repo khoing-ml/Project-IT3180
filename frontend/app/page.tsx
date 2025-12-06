@@ -120,7 +120,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
       <Sidebar />
       <div className="ml-72 mr-4">
         <Header />
@@ -128,10 +128,10 @@ export default function Home() {
         <main className="p-6">
           {/* Welcome Section */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
               Chào mừng đến với BlueMoon
             </h1>
-            <p className="text-slate-400">
+            <p className="text-slate-600">
               Hệ thống quản lý chung cư thông minh và hiện đại
             </p>
           </div>
@@ -141,15 +141,15 @@ export default function Home() {
             {quickStats.map((stat, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 group"
+                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`bg-gradient-to-br ${stat.gradient} rounded-xl p-3 shadow-lg`}>
                     <stat.icon className="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <p className="text-slate-400 text-sm mb-1">{stat.label}</p>
-                <p className="text-white text-2xl font-bold">{stat.value}</p>
+                <p className="text-slate-600 text-sm mb-1">{stat.label}</p>
+                <p className="text-slate-800 text-2xl font-bold">{stat.value}</p>
               </div>
             ))}
           </div>
@@ -159,11 +159,11 @@ export default function Home() {
             {functionCards.map((card, index) => (
               <button
                 key={index}
-                className="group relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-left overflow-hidden"
+                className="group relative bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-left overflow-hidden"
               >
                 {/* Background Glow Effect */}
                 <div
-                  className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                  className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
                 />
 
                 {/* Icon */}
@@ -172,17 +172,17 @@ export default function Home() {
                 </div>
 
                 {/* Title */}
-                <h3 className="relative text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                <h3 className="relative text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">
                   {card.title}
                 </h3>
 
                 {/* Description */}
-                <p className="relative text-slate-400 text-sm leading-relaxed">
+                <p className="relative text-slate-600 text-sm leading-relaxed">
                   {card.description}
                 </p>
 
                 {/* Hover Arrow */}
-                <div className="relative mt-4 flex items-center text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative mt-4 flex items-center text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <span className="text-sm font-medium">Xem chi tiết</span>
                   <svg
                     className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
