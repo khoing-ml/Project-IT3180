@@ -2,7 +2,7 @@
   "name": "bluemoon-backend",
   "version": "0.1.0",
   "description": "Backend API for BlueMoon apartment management system",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
@@ -10,5 +10,15 @@
   },
   "keywords": ["apartment", "management", "api"],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
 }

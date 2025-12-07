@@ -2,6 +2,9 @@
 
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
+import ProtectedRoute from "../components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserRole } from "@/types/auth";
 import {
   Users,
   BarChart3,
@@ -19,6 +22,8 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const { user, hasPermission } = useAuth();
+
   const functionCards = [
     {
       icon: Users,
@@ -26,6 +31,7 @@ export default function Home() {
       description: "Quản lý thông tin các hộ dân trong chung cư",
       gradient: "from-blue-500 to-blue-600",
       shadowColor: "shadow-blue-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
     },
     {
       icon: BarChart3,
@@ -33,6 +39,7 @@ export default function Home() {
       description: "Theo dõi chi tiết các khoản thu chi của chung cư",
       gradient: "from-green-500 to-green-600",
       shadowColor: "shadow-green-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
     },
     {
       icon: FileText,
@@ -40,6 +47,7 @@ export default function Home() {
       description: "Tạo và quản lý hóa đơn cho các hộ dân",
       gradient: "from-purple-500 to-purple-600",
       shadowColor: "shadow-purple-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
     },
     {
       icon: Wrench,
@@ -47,6 +55,7 @@ export default function Home() {
       description: "Theo dõi và xử lý các yêu cầu sửa chữa, bảo trì",
       gradient: "from-orange-500 to-orange-600",
       shadowColor: "shadow-orange-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
     },
     {
       icon: Building2,
@@ -54,6 +63,7 @@ export default function Home() {
       description: "Cập nhật thông tin về tòa nhà và tiện ích",
       gradient: "from-cyan-500 to-cyan-600",
       shadowColor: "shadow-cyan-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
     },
     {
       icon: Car,
@@ -61,6 +71,7 @@ export default function Home() {
       description: "Đăng ký và quản lý phương tiện giao thông",
       gradient: "from-pink-500 to-pink-600",
       shadowColor: "shadow-pink-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
     },
     {
       icon: Clipboard,
@@ -68,6 +79,7 @@ export default function Home() {
       description: "Lập kế hoạch và theo dõi tiến độ công việc",
       gradient: "from-indigo-500 to-indigo-600",
       shadowColor: "shadow-indigo-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
     },
     {
       icon: MessageSquare,
@@ -75,6 +87,7 @@ export default function Home() {
       description: "Gửi thông báo và tiếp nhận phản hồi từ cư dân",
       gradient: "from-teal-500 to-teal-600",
       shadowColor: "shadow-teal-500/50",
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
     },
     {
       icon: UserCog,
@@ -82,6 +95,7 @@ export default function Home() {
       description: "Quản lý thông tin và phân công nhân viên",
       gradient: "from-red-500 to-red-600",
       shadowColor: "shadow-red-500/50",
+      requiredRoles: [UserRole.ADMIN],
     },
     {
       icon: ShieldCheck,
@@ -89,6 +103,7 @@ export default function Home() {
       description: "Thiết lập quyền truy cập cho các vai trò",
       gradient: "from-yellow-500 to-yellow-600",
       shadowColor: "shadow-yellow-500/50",
+      requiredRoles: [UserRole.ADMIN],
     },
   ];
 
@@ -120,21 +135,25 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
-      <Sidebar />
-      <div className="ml-72 mr-4">
-        <Header />
-        
-        <main className="p-6">
-          {/* Welcome Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">
-              Chào mừng đến với BlueMoon
-            </h1>
-            <p className="text-slate-600">
-              Hệ thống quản lý chung cư thông minh và hiện đại
-            </p>
-          </div>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
+        <Sidebar />
+        <div className="ml-72 mr-4">
+          <Header />
+          
+          <main className="p-6">
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                Chào mừng {user?.fullName || 'bạn'} đến với BlueMoon
+              </h1>
+              <p className="text-slate-600">
+                Hệ thống quản lý chung cư thông minh và hiện đại
+                {user?.role === UserRole.ADMIN && " - Quản trị viên"}
+                {user?.role === UserRole.MANAGER && " - Quản lý"}
+                {user?.role === UserRole.USER && user?.apartmentNumber && ` - Căn hộ ${user.apartmentNumber}`}
+              </p>
+            </div>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -156,7 +175,9 @@ export default function Home() {
 
           {/* Function Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {functionCards.map((card, index) => (
+            {functionCards
+              .filter((card) => hasPermission(card.requiredRoles))
+              .map((card, index) => (
               <button
                 key={index}
                 className="group relative bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-left overflow-hidden"
@@ -204,5 +225,6 @@ export default function Home() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
