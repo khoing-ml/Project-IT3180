@@ -25,7 +25,8 @@ class VehicleRepository {
         .eq('number', number)
         .select();
         return res;
-    } 
+    }
+    
 
     async query_vehicles_by_owner(owner) {
         const res = await supabaseAdmin
@@ -115,7 +116,59 @@ class VehicleRepository {
 
 }
 
+class vehicleRegistrationRepository {
+    async insert(new_registration) {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .insert(new_registration)
+        .select();
+        return res
+    }
+
+    async delete(vehicle_number) {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .delete()
+        .eq('number', vehicle_number);
+        return res;
+    }
+
+    async query_all_with_range(start, end) {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .select('*')
+        .order('created_at', {ascending: false})
+        .range(start, end);
+        return res 
+    }
+
+    async query_request_by_apt(apt_id) {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .select('*')
+        .eq('apt_id', apt_id);
+        return res;
+    }
+
+    async update(new_value, number) {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .update(new_value)
+        .eq('number', number)
+        .select();
+        return res;
+    }
+
+    async count_all() {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .select('*', {count: 'exact', head: true});
+        return res;
+    }
+}
+
 
 module.exports = {
-    VehicleRepository
+    VehicleRepository,
+    vehicleRegistrationRepository
 };

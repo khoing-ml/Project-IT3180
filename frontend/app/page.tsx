@@ -20,9 +20,11 @@ import {
   DollarSign,
   Clock,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { user, hasPermission } = useAuth();
+  const router = useRouter();
 
   const functionCards = [
     {
@@ -71,7 +73,7 @@ export default function Home() {
       description: "Đăng ký và quản lý phương tiện giao thông",
       gradient: "from-pink-500 to-pink-600",
       shadowColor: "shadow-pink-500/50",
-      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
     },
     {
       icon: Clipboard,
@@ -180,6 +182,9 @@ export default function Home() {
               .map((card, index) => (
               <button
                 key={index}
+                onClick={() => {
+                  if (card.title === "Quản lý xe") router.push("/vehicles");
+                }}
                 className="group relative bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-left overflow-hidden"
               >
                 {/* Background Glow Effect */}

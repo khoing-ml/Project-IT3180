@@ -16,5 +16,15 @@ router.get("/query-by-apt", controller.query_vehicles_by_apt.bind(controller));
 router.get("/query-by-apt-type", controller.query_vehicles_by_type_and_apt.bind(controller));
 router.get("/query-all", controller.query_all_vehicles.bind(controller));
 router.get("/query-all-with-type", controller.query_all_vehicles_with_type.bind(controller));
+router.get("/count-by-apt-type", controller.count_vehicles_by_type_and_apt.bind(controller));
+router.get("/count-all-by-type", controller.count_all_vehicles_by_type.bind(controller));
+
+// 
+router.post("/insert-request", controller.new_request.bind(controller));
+router.patch("/update-request", controller.update_request.bind(controller));
+router.post("/delete-request", controller.delete_request.bind(controller));
+router.get("/query-all-request", controller.query_all_request.bind(controller));
+router.get("/query-request-by-apt", controller.query_request_by_apt.bind(controller));
+
 
 module.exports = router;
