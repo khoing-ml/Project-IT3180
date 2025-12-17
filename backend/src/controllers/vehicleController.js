@@ -66,6 +66,45 @@ class VehicleController { // TODO: add access control
         }
     }
 
+    async query_with_filter(req, res) {
+        try {
+            let result = {}
+            const {
+                page_number,
+                page_size,
+                filter
+            } = req.query;
+            console.log(filter)
+            console.log(page_number)
+            if(!page_number || !page_size) {
+                throw new Error("No page number found!");
+            }
+            const start = (page_number - 1) * page_size;
+            const end = start + page_size - 1;
+
+            const { data, error } = await this.repo.query_with_filter(filter, start, end);
+
+            if(error) {
+                throw new Error(error.message);
+            }
+
+            result.data = data;
+            result.current_page = page_number;
+            result.page_size = page_size;
+            const {count, error: countError} = await this.repo.count_all_vehicles_with_filter(filter);
+            if(countError) {
+                console.warn("Unable to retrieve total document: ", countError.message);
+            }
+            result.total_docs = count || 0;
+            result.total_pages = Math.ceil(result.total_docs / page_size);
+
+            return res.status(200).json({message: "Success", result: result});
+        }
+        catch(error) {
+            return res.status(400).json({message: error.message});
+        }
+    }
+
     async query_vehicles_by_owner(req, res) {
         try {
             const {
@@ -318,13 +357,14 @@ class VehicleController { // TODO: add access control
             let result = {}
             const {
                 page_number,
+                page_size
             } = req.query;
             console.log(page_number)
             if(!page_number) {
                 throw new Error("No page number found!");
             }
-            const start = (page_number - 1) * PAGE_SIZE;
-            const end = start + PAGE_SIZE - 1;
+            const start = (page_number - 1) * page_size;
+            const end = start + page_size - 1;
 
             const { data, error } = await this.registration.query_all_with_range(start, end);
 
@@ -334,13 +374,13 @@ class VehicleController { // TODO: add access control
 
             result.data = data;
             result.current_page = page_number;
-            result.page_size = PAGE_SIZE;
+            result.page_size = page_size;
             const {count, error: countError} = await this.registration.count_all();
             if(countError) {
                 console.warn("Unable to retrieve total document: ", countError.message);
             }
             result.total_docs = count || 0;
-            result.total_pages = Math.ceil(result.total_docs / PAGE_SIZE);
+            result.total_pages = Math.ceil(result.total_docs / page_size);
 
             return res.status(200).json({message: "Success", result: result});
         }

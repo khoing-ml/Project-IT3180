@@ -183,6 +183,7 @@ export default function UserVehiclePage() {
           color: "",
           owner: "",
         })
+        await fetchUserRequest();
         await setInMode(false);
       }
       catch(error) {

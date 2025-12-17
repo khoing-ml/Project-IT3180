@@ -26,6 +26,21 @@ class VehicleRepository {
         .select();
         return res;
     }
+
+    async query_with_filter(filter, start, end) {
+        let res = supabaseAdmin
+        .from('vehicles')
+        .select('*');
+
+        if(filter)
+        Object.entries(filter).forEach(([key, value]) => {
+            res = res.eq(key, value);
+        })
+
+        res = res.order('apt_id', {ascending: true}).range(start, end);
+        const final = await res;
+        return final;
+    }
     
 
     async query_vehicles_by_owner(owner) {
@@ -79,6 +94,20 @@ class VehicleRepository {
         .order('apt_id', {ascending: false})
         .range(start, end);
         return res 
+    }
+
+    async count_all_vehicles_with_filter(filter) {
+        let query = supabaseAdmin
+        .from('vehicles')
+        .select('*', {count: 'exact', head: true});
+
+        if(filter)
+        Object.entries(filter).forEach(([key, value]) => {
+            query = query.eq(key, value);
+        })
+
+        const res = await query;
+        return res;
     }
 
     async count_all_vehicles() {
@@ -137,7 +166,7 @@ class vehicleRegistrationRepository {
         const res = await supabaseAdmin
         .from('vehicle_registration')
         .select('*')
-        .order('created_at', {ascending: false})
+        .order('created_at', {ascending: true})
         .range(start, end);
         return res 
     }

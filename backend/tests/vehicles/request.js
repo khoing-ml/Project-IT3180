@@ -53,9 +53,10 @@ async function test_query_all_request() {
         const res = await axios.get("http://localhost:3001/api/vehicles/query-all-request", {      
             params: {
                 page_number: 1,
+                page_size: 5
             }
         });
-        console.log("Response:", dateConvert(res.data.result.data[0].created_at));
+        console.log("Response:", res.data.result);
     } catch (err) {
         console.log(err);
     }

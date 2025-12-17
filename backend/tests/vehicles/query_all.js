@@ -18,12 +18,16 @@ async function test_query_all() {
 
 async function test_query_all_with_type() {
     try {
-        const res = await axios.get("http://localhost:3001/api/vehicles/count-all-by-type", {      
+        const res = await axios.get("http://localhost:3001/api/vehicles/query-with-filter", {      
             params: {
-                type: "car"
+                page_number: 1,
+                page_size: 5,
+                filter: {
+                
+                }
             }
         });
-        console.log(res.data.count);
+        console.log(res.data.result);
 
     } catch (err) {
         console.log(err);

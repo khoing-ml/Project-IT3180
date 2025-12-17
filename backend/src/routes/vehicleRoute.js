@@ -18,6 +18,8 @@ router.get("/query-all", controller.query_all_vehicles.bind(controller));
 router.get("/query-all-with-type", controller.query_all_vehicles_with_type.bind(controller));
 router.get("/count-by-apt-type", controller.count_vehicles_by_type_and_apt.bind(controller));
 router.get("/count-all-by-type", controller.count_all_vehicles_by_type.bind(controller));
+router.get("/query-with-filter", controller.query_with_filter.bind(controller));
+
 
 // 
 router.post("/insert-request", controller.new_request.bind(controller));

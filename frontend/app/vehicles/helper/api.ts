@@ -1,6 +1,6 @@
 import axios from "axios";
-import { vehicle_type } from "./type";
-import { ca } from "date-fns/locale";
+import { vehicle_type, request_type, filterType } from "./type";
+import {dateConvert} from "./utils";
 
 const veh_type2 = ["car", "bike", "motorbike"];
 const apiToStateKey: Record<string, keyof vehicle_type> = {
@@ -100,6 +100,73 @@ export class ApiCall {
             throw new Error(error.message);
         }
     }
+
+    async query_all_request(page_number, page_size) {
+        try {
+            const res = await axios.get("http://localhost:3001/api/vehicles/query-all-request", {      
+                params: {
+                    page_number,
+                    page_size
+                }
+            });
+            console.log("Response:", dateConvert(res.data.result.data[0].created_at));
+            for(let date of res.data.result.data) {
+                date.date
+            }
+            return res.data.result;
+        } catch (err) {
+            console.log(err);
+            throw new Error(err.message);
+        }   
+    }
+
+    async delete_request(number) {
+        try {
+            const res = await axios.post("http://localhost:3001/api/vehicles/delete-request", {
+                number
+            });
+            return res
+        }
+        catch(error) {
+            throw new Error(error.message);
+        }
+    } 
+
+    async accept_request(request: request_type) {
+        try {
+            const res = await axios.post("http://localhost:3001/api/vehicles/insert", {
+                apt_id: request.apt_id,
+                owner: request.owner,
+                type: request.type,
+                number: request.number,
+                color: request.color
+            });
+            return res;
+        }
+        catch(error) {
+            console.log(error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async search_vehicles_with_filter(filter: filterType, page_number, page_size) {
+        try {
+            const res = await axios.get("http://localhost:3001/api/vehicles/query-with-filter", {      
+                params: {
+                    page_number: page_number,
+                    page_size: page_size,
+                    filter
+                }
+            });
+            console.log(res.data.result);
+            return res.data.result;
+        } 
+        catch (err) {
+            console.log(err);
+            throw new Error(err.message);
+        }
+    }
+
 }
 
 

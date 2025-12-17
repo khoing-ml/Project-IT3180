@@ -9,7 +9,15 @@ export type request_type = {
     number: string,
     apt_id: string,
     owner: string,
-    date: string,
+    created_at: string,
     color: string,
     type: string
+}
+
+export type filterType = {
+    number?: string,
+    apt_id?: string,
+    owner?: string,
+    color?: string,
+    type?: string
 }
