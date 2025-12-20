@@ -14,8 +14,8 @@ import {
 } from "../ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { CheckCircle2, Clock, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { request_type } from "../../helper/type";
-import { ApiCall } from "../../helper/api";
+import { request_type } from "../../../helper/type";
+import { ApiCall } from "../../../helper/api";
 
 const requests: request_type[] = [
   {
@@ -143,8 +143,8 @@ export function RequestsTab() {
     setError(null);
     try {
       const res = await api.query_all_request(currentPage, pageSize);
-      setCurrentRequests(res.data);
       setTotalRequest(res.total_docs);
+      setCurrentRequests(res.data);
     }
     catch(error) {
       setError(error.message);
@@ -282,52 +282,35 @@ export function RequestsTab() {
                 ))}
               </TableBody>
             </Table>
+            {currentRequests.length === 0 && (
+                        <div className="p-6 text-center text-gray-500">
+                            Không có yêu cầu nào.
+                        </div>
+            )}
 
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-600">
-                Hiển thị {startIndex + 1} đến {Math.min(endIndex, currentRequests.length)} trong tổng số {totalRequests} yêu
-                cầu
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePreviousPage}
-                  disabled={currentPage === 1}
-                  className="border-gray-300 hover:bg-gray-100 disabled:opacity-50 bg-transparent"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageClick(page)}
-                      className={
-                        currentPage === page
-                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                          : "border-gray-300 hover:bg-gray-100 text-gray-700"
-                      }
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                  className="border-gray-300 hover:bg-gray-100 disabled:opacity-50 bg-transparent"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Trang {currentPage} / {totalPages}
             </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
           </CardContent>
         </Card>
       )}

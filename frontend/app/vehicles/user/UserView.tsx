@@ -20,8 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Plus, Car, Bike } from "lucide-react"
 import { AppHeader } from "../components/app-header"
 import Header from "../../../components/Header";
-import { vehicle_type } from "../helper/type";
-import {ApiCall} from "../helper/api";
+import { vehicle_type } from "../../helper/type";
+import {ApiCall} from "../../helper/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { ca } from "date-fns/locale";
 

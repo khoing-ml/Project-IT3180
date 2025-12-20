@@ -109,10 +109,8 @@ export class ApiCall {
                     page_size
                 }
             });
-            console.log("Response:", dateConvert(res.data.result.data[0].created_at));
-            for(let date of res.data.result.data) {
-                date.date
-            }
+            //console.log("Response:", dateConvert(res.data.result.data[0].created_at));
+       
             return res.data.result;
         } catch (err) {
             console.log(err);
@@ -167,6 +165,92 @@ export class ApiCall {
         }
     }
 
+    async query_all_bill(owner, page_size, page_number) {
+        try {
+            const res = await axios.get("http://localhost:3001/api/bills/query-by-owner", {      
+                params: {
+                    page_number,
+                    page_size,
+                    owner
+                }
+            });
+            console.log(res.data.result);
+            return res.data.result;
+
+        } catch (err) {
+            console.log(err);
+            throw new Error(err.message);
+        }
+    }
+
+    async query_bill_with_filter(filter, page_number, page_size) {
+         try {
+            const res = await axios.get("http://localhost:3001/api/bills/query-with-filter", {      
+                params: {
+                    page_number,
+                    page_size,
+                    filter
+                }
+            });
+            console.log(res.data.result);
+            return res.data.result;
+
+        } catch (err) {
+            console.log(err);
+            throw new Error(err.message);
+        }
+    }
+
+    async reset_bill(apt_id) {
+         try {
+            const res = await axios.patch("http://localhost:3001/api/bills/reset", {      
+                apt_id,
+            });
+            console.log("Response:", res.data);
+        } catch (err) {
+            console.log(err);
+            throw new Error(err.message);
+        }
+    }
+
+    async update_bill(apt_id, bill_value) {
+        try {
+            const res = await axios.patch("http://localhost:3001/api/bills/update", {      
+                apt_id,
+                bill: bill_value
+            });
+            console.log("Response:", res.data);
+            return res;
+        } catch (err) {
+            console.log(err);
+            throw new Error(err.message);
+        }
+    }
+
+    async get_total_collected() {
+        try {
+            const res = await axios.get("http://localhost:3001/api/bills/query-all-collected", {      
+            
+            });
+            console.log("Response:", res.data.data);
+            return res.data.result;
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    async collect_bill(apt_id, total) {
+        try {
+            const res = await axios.post("http://localhost:3001/api/bills/collect-bill", {      
+                apt_id,
+                total
+            });
+            console.log("Response:", res.data);
+            return res;
+        } catch (err) {
+            console.log(err);
+        }
+    }
 }
 
 

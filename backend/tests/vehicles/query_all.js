@@ -20,8 +20,8 @@ async function test_query_all_with_type() {
     try {
         const res = await axios.get("http://localhost:3001/api/vehicles/query-with-filter", {      
             params: {
-                page_number: 1,
-                page_size: 5,
+                page_number: 2,
+                page_size: 1,
                 filter: {
                 
                 }

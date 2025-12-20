@@ -12,8 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UserRole } from "@/types/auth";
 import { Card } from "../components/ui/card";
 import { Plus, Car, Bike } from "lucide-react"
-import { vehicle_type } from "../helper/type";
-import {ApiCall} from "../helper/api";
+import { vehicle_type } from "../../helper/type";
+import {ApiCall} from "../../helper/api";
 
 const vehicleStats = {
   car: 1,

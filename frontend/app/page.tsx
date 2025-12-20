@@ -49,7 +49,7 @@ export default function Home() {
       description: "Tạo và quản lý hóa đơn cho các hộ dân",
       gradient: "from-purple-500 to-purple-600",
       shadowColor: "shadow-purple-500/50",
-      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
+      requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
     },
     {
       icon: Wrench,
@@ -184,6 +184,7 @@ export default function Home() {
                 key={index}
                 onClick={() => {
                   if (card.title === "Quản lý xe") router.push("/vehicles");
+                  if (card.title === "Lập hóa đơn") router.push("/bills");
                 }}
                 className="group relative bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-left overflow-hidden"
               >
