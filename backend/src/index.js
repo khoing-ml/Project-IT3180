@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 
 const routes = require('./routes');
 
@@ -36,6 +38,9 @@ app.get('/', (req, res) => {
     }
   });
 });
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 // 404 handler
 app.use((req, res) => {
