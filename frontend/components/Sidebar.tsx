@@ -15,28 +15,36 @@ import {
   BarChart3,
   UsersRound,
   Table,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserRole } from "@/types/auth";
+import { usePathname } from "next/navigation";
 
 export default function Sidebar() {
+  const { hasPermission } = useAuth();
+  const pathname = usePathname();
+
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", active: true },
-    { icon: Package, label: "Products", active: false },
-    { icon: Heart, label: "Favorites", active: false },
-    { icon: Inbox, label: "Inbox", active: false },
-    { icon: List, label: "Order Lists", active: false },
-    { icon: Archive, label: "Product Stock", active: false },
+    { icon: LayoutDashboard, label: "Dashboard", active: pathname === "/", path: "/" },
+    { icon: Package, label: "Products", active: false, path: "/products" },
+    { icon: Heart, label: "Favorites", active: false, path: "/favorites" },
+    { icon: Inbox, label: "Inbox", active: false, path: "/inbox" },
+    { icon: List, label: "Order Lists", active: false, path: "/orders" },
+    { icon: Archive, label: "Product Stock", active: false, path: "/stock" },
   ];
 
   const pageItems = [
-    { icon: DollarSign, label: "Pricing", active: false },
-    { icon: Calendar, label: "Calendar", active: false },
-    { icon: ClipboardList, label: "To-Do", active: false },
-    { icon: Users, label: "Contact", active: false },
-    { icon: Receipt, label: "Invoice", active: false },
-    { icon: BarChart3, label: "UI Elements", active: false },
-    { icon: UsersRound, label: "Team", active: false },
-    { icon: Table, label: "Table", active: false },
+    { icon: DollarSign, label: "Pricing", active: false, path: "/pricing" },
+    { icon: Calendar, label: "Calendar", active: false, path: "/calendar" },
+    { icon: ClipboardList, label: "To-Do", active: false, path: "/todo" },
+    { icon: Users, label: "Contact", active: false, path: "/contact" },
+    { icon: Receipt, label: "Invoice", active: false, path: "/invoice" },
+    { icon: BarChart3, label: "UI Elements", active: false, path: "/ui" },
+    { icon: UsersRound, label: "Team", active: false, path: "/team" },
+    { icon: Table, label: "Table", active: false, path: "/table" },
   ];
 
   return (
@@ -61,26 +69,61 @@ export default function Sidebar() {
         <nav className="space-y-2">
           {/* Main Menu Items */}
           <div className="mb-6">
-            {menuItems.map((item, index) => (
-              <button
-                key={index}
+            {menuItems.map((item, index) => {
+              const isActive = pathname === item.path;
+              return (
+                <Link
+                  key={index}
+                  href={item.path}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                    isActive
+                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
+                  )}
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
+                  <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                  {isActive && (
+                    <ChevronRight className="w-4 h-4 opacity-70" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Admin Section - Only visible to admins */}
+          {hasPermission([UserRole.ADMIN]) && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 px-4 pb-3">
+                <div className="h-px flex-1 bg-slate-700"></div>
+                <p className="text-xs font-semibold text-red-500 uppercase tracking-wider flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  Admin
+                </p>
+                <div className="h-px flex-1 bg-slate-700"></div>
+              </div>
+              <Link
+                href="/admin"
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
-                  item.active
-                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
+                  pathname === '/admin'
+                    ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50"
                     : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
               >
-                {item.active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
+                {pathname === '/admin' && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-400 rounded-r-full"></div>
                 )}
-                <item.icon className={`w-5 h-5 ${item.active ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
-                <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                {item.active && (
+                <Shield className={`w-5 h-5 ${pathname === '/admin' ? 'text-white' : 'text-slate-400 group-hover:text-red-400'} transition-colors`} />
+                <span className="text-sm font-medium flex-1 text-left">Quản trị hệ thống</span>
+                {pathname === '/admin' && (
                   <ChevronRight className="w-4 h-4 opacity-70" />
                 )}
-              </button>
-            ))}
-          </div>
+              </Link>
+            </div>
+          )}
 
           {/* Pages Section */}
           <div className="pt-4">
@@ -92,25 +135,29 @@ export default function Sidebar() {
               <div className="h-px flex-1 bg-slate-700"></div>
             </div>
 
-            {pageItems.map((item, index) => (
-              <button
-                key={index}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
-                  item.active
-                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                {item.active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
-                )}
-                <item.icon className={`w-5 h-5 ${item.active ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
-                <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                {item.active && (
-                  <ChevronRight className="w-4 h-4 opacity-70" />
-                )}
-              </button>
-            ))}
+            {pageItems.map((item, index) => {
+              const isActive = pathname === item.path;
+              return (
+                <Link
+                  key={index}
+                  href={item.path}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                    isActive
+                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
+                  )}
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
+                  <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                  {isActive && (
+                    <ChevronRight className="w-4 h-4 opacity-70" />
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </nav>
       </div>
