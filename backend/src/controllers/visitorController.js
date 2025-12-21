@@ -71,11 +71,17 @@ exports.getVisitorById = async (req, res) => {
   }
 };
 
-// Create new visitor request
+// Create new visitor request (Residents only)
 exports.createVisitor = async (req, res) => {
   try {
     const { visitor_name, visitor_phone, visitor_email, purpose, expected_arrival, expected_departure, notes } = req.body;
     const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    // Only residents can register visitors
+    if (userRole !== 'user') {
+      return res.status(403).json({ error: 'Only residents can register visitors' });
+    }
 
     // Validate required fields
     if (!visitor_name || !purpose || !expected_arrival) {
