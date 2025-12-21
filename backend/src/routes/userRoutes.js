@@ -11,8 +11,8 @@ const {
 } = require('../controllers/userController');
 
 // All routes require authentication and admin privileges
-// router.use(verifyToken);
-// router.use(requireAdmin);
+router.use(verifyToken);
+router.use(requireAdmin);
 
 /**
  * @route   GET /api/users

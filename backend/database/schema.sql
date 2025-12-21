@@ -28,6 +28,23 @@ DROP POLICY IF EXISTS "Admins can insert profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can delete profiles" ON profiles;
 
+-- Create a function to get current user role from profiles
+-- This uses SECURITY DEFINER to avoid RLS recursion
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS TEXT AS $$
+BEGIN
+  RETURN (
+    SELECT role 
+    FROM public.profiles 
+    WHERE id = auth.uid()
+    LIMIT 1
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.get_my_role() TO authenticated;
+
 -- Create policies
 -- Allow users to read their own profile
 CREATE POLICY "Users can view own profile" 
@@ -39,45 +56,25 @@ CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE 
   USING (auth.uid() = id);
 
--- Allow admins to view all profiles
+-- Allow admins to view all profiles (using security definer function to avoid recursion)
 CREATE POLICY "Admins can view all profiles" 
   ON profiles FOR SELECT 
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.get_my_role() = 'admin');
 
 -- Allow admins to insert profiles
 CREATE POLICY "Admins can insert profiles" 
   ON profiles FOR INSERT 
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  WITH CHECK (public.get_my_role() = 'admin');
 
 -- Allow admins to update all profiles
 CREATE POLICY "Admins can update all profiles" 
   ON profiles FOR UPDATE 
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.get_my_role() = 'admin');
 
 -- Allow admins to delete profiles
 CREATE POLICY "Admins can delete profiles" 
   ON profiles FOR DELETE 
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.get_my_role() = 'admin');
 
 -- ==============================================
 -- 2. TRIGGERS AND FUNCTIONS

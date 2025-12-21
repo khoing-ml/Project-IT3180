@@ -19,12 +19,42 @@ import {
   Home as HomeIcon,
   DollarSign,
   Clock,
+  Activity,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getActivityStats } from "@/helper/activityLogApi";
+import { ActivityStats } from "@/types/activityLog";
 
 export default function Home() {
   const { user, hasPermission } = useAuth();
   const router = useRouter();
+  const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  // Fetch activity statistics for admin/manager
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user || ![UserRole.ADMIN, UserRole.MANAGER].includes(user.role as UserRole)) {
+        return;
+      }
+
+      setLoadingStats(true);
+      try {
+        const stats = await getActivityStats();
+        setActivityStats(stats);
+      } catch (error) {
+        console.error("Failed to fetch activity stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
 
   const functionCards = [
     {
@@ -160,6 +190,105 @@ export default function Home() {
                 {user?.role === UserRole.USER && user?.apartmentNumber && ` - Căn hộ ${user.apartmentNumber}`}
               </p>
             </div>
+
+            {/* Activity Statistics Section (Admin/Manager only) */}
+            {hasPermission([UserRole.ADMIN, UserRole.MANAGER]) && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <Activity className="w-6 h-6 text-blue-600" />
+                    Thống kê hoạt động
+                  </h2>
+                  <button
+                    onClick={() => router.push("/activity-logs")}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Xem tất cả →
+                  </button>
+                </div>
+
+                {loadingStats ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 animate-pulse">
+                        <div className="h-12 w-12 bg-slate-200 rounded-lg mb-4"></div>
+                        <div className="h-4 bg-slate-200 rounded w-20 mb-2"></div>
+                        <div className="h-8 bg-slate-200 rounded w-16"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : activityStats ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Total Activities */}
+                    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-600 mb-1">Tổng hoạt động</p>
+                          <p className="text-3xl font-bold text-slate-800">{activityStats.total}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3">
+                          <Activity className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Successful Activities */}
+                    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-600 mb-1">Thành công</p>
+                          <p className="text-3xl font-bold text-green-600">{activityStats.byStatus?.success || 0}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3">
+                          <CheckCircle className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Failed Activities */}
+                    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-600 mb-1">Thất bại</p>
+                          <p className="text-3xl font-bold text-red-600">{activityStats.byStatus?.failure || 0}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3">
+                          <XCircle className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Warning Activities */}
+                    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-600 mb-1">Cảnh báo</p>
+                          <p className="text-3xl font-bold text-orange-600">{activityStats.byStatus?.warning || 0}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3">
+                          <AlertCircle className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Recent Activity by Type */}
+                {activityStats && activityStats.byAction && (
+                  <div className="mt-4 bg-white rounded-xl p-6 border border-slate-200 shadow-lg">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Hoạt động theo loại</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {Object.entries(activityStats.byAction).slice(0, 8).map(([action, count]) => (
+                        <div key={action} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                          <span className="text-sm text-slate-600 capitalize">{action.replace(/_/g, ' ')}</span>
+                          <span className="text-lg font-bold text-slate-800">{count as number}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           {/* Function Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

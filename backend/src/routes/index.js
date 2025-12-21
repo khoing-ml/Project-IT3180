@@ -8,6 +8,7 @@ const apartmentRoutes = require('./apartmentRoutes');
 const paymentRoutes = require('./paymentRoutes');
 const visitorRoutes = require('./visitorRoutes');
 const accessCardRoutes = require('./accessCardRoutes');
+const activityLogRoutes = require('./activityLogRoutes');
 
 /**
  * @swagger
@@ -71,5 +72,6 @@ router.use('/apartments', apartmentRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/visitors', visitorRoutes);
 router.use('/access-cards', accessCardRoutes);
+router.use('/activity-logs', activityLogRoutes);
 
 module.exports = router;

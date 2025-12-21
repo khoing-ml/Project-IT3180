@@ -42,7 +42,7 @@ export class ApiCall {
             //console.log("Response:", res.data);
             return res;
         } catch (err) {
-            console.log(err);
+            console.log(err.message);
         }
     }
 
@@ -160,7 +160,7 @@ export class ApiCall {
             return res.data.result;
         } 
         catch (err) {
-            console.log(err);
+            console.log(err.message);
             throw new Error(err.message);
         }
     }

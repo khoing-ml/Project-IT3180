@@ -298,6 +298,13 @@ const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verify user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'Authentication required' 
+      });
+    }
+
     // Prevent admin from deleting themselves
     if (id === req.user.id) {
       return res.status(403).json({ 
@@ -316,7 +323,21 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Delete user from Supabase Auth (this will cascade delete profile due to FK)
+    // First, delete the profile from the profiles table
+    // This will cascade delete related records (visitors, access_cards, etc.)
+    const { error: profileDeleteError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (profileDeleteError) {
+      console.error('Profile delete error:', profileDeleteError);
+      return res.status(500).json({ 
+        error: profileDeleteError.message || 'Failed to delete user profile' 
+      });
+    }
+
+    // Then delete user from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
 
     if (deleteError) {

@@ -195,9 +195,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           console.log('Session found, fetching profile');
+          // Store the token for backend API calls
+          if (session.access_token) {
+            localStorage.setItem("token", session.access_token);
+          }
           await fetchUserProfile(session.user.id);
         } else {
           console.log('No session found');
+          localStorage.removeItem("token");
           setAuthState((prev) => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
@@ -253,7 +258,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Auth successful');
 
-      if (data.user) {
+      if (data.user && data.session) {
+        // Store the access token in localStorage for backend API calls
+        localStorage.setItem("token", data.session.access_token);
+        
         // Fetch profile (already has timeout built-in)
         await fetchUserProfile(data.user.id);
         console.log('Profile fetch completed');
@@ -267,6 +275,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       console.log('Logging out...');
+      // Remove token from localStorage
+      localStorage.removeItem("token");
+      
       // Set state immediately to prevent race conditions
       setAuthState({
         user: null,

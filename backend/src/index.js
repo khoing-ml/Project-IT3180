@@ -5,6 +5,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const { activityLogger } = require('./middleware/activityLogger');
 
 const routes = require('./routes');
 
@@ -27,6 +28,12 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
+
+// Activity logging middleware (logs after authentication)
+app.use(activityLogger({
+  logGetRequests: false, // Don't log GET requests to reduce noise
+  excludePaths: ['/api/health', '/api/activity-logs', '/api/docs']
+}));
 
 // API Routes
 app.use('/api', routes);
@@ -65,12 +72,12 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 BlueMoon Backend Server running on port ${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}/api`);
-  console.log(`🏥 Health check at http://localhost:${PORT}/api/health`);
-  console.log(`🔧 Maintenance API at http://localhost:${PORT}/api/maintenance`);
-  console.log(`🏢 Building API at http://localhost:${PORT}/api/building`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`BlueMoon Backend Server running on port ${PORT}`);
+  console.log(`API available at http://localhost:${PORT}/api`);
+  console.log(`Health check at http://localhost:${PORT}/api/health`);
+  console.log(`Maintenance API at http://localhost:${PORT}/api/maintenance`);
+  console.log(`Building API at http://localhost:${PORT}/api/building`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;
