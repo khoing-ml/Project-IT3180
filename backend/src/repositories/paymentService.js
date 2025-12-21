@@ -14,7 +14,7 @@ exports.getIncomeByApartmentPaginated = async (offset = 0, limit = 20) => {
 
   const { data: apartments, error: aptError, count } = await supabase
     .from('apartments')
-    .select('apt_id, owner_name, floor', { count: 'exact' })  // Bỏ block
+    .select('apt_id, owner_name, floor', { count: 'exact' })  
     .order('apt_id')  // Chỉ order theo apt_id
     .range(offset, offset + limit - 1);
 
@@ -64,11 +64,11 @@ exports.getIncomeByFloor = async () => {
 
   return Object.keys(floorMap)
     .map(key => ({
-      floor: parseInt(key),  // chuyển về số để sort đúng
+      floor: parseInt(key), 
       display: `Tầng ${key}`,
       total_income: floorMap[key]
     }))
-    .sort((a, b) => a.floor - b.floor);  // Sắp xếp tầng tăng dần
+    .sort((a, b) => a.floor - b.floor);  
 };
 
 

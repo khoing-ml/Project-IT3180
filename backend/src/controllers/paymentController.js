@@ -1,20 +1,6 @@
 const paymentService = require('../repositories/paymentService');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helper');
 
-// Lập hóa đơn tháng 
-exports.createBill = async (req, res) => {
-  try {
-    const data = await paymentService.createMonthlyBill(req.body);
-    res.status(201).json({
-      success: true,
-      message: 'Lập hóa đơn thành công',
-      data,
-    });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-};
-
 // Thống kê tổng đã thu của từng căn hộ (phân trang)
 exports.getIncomeByApartment = async (req, res) => {
   try {
@@ -48,7 +34,7 @@ exports.getIncomeByFloor = async (req, res) => {
   }
 };
 
-// Thống kê tài chính đầy đủ theo tầng (đã thu + phải thu + nợ hiện tại + tỷ lệ thu)
+// Thống kê tài chính chi tiết theo tầng
 exports.getFinancialByFloor = async (req, res) => {
   try {
     const data = await paymentService.getFinancialByFloor();
@@ -62,7 +48,7 @@ exports.getFinancialByFloor = async (req, res) => {
   }
 };
 
-// Danh sách các căn hộ đang nợ (phân trang)
+// Danh sách căn hộ đang nợ
 exports.getApartmentsInDebt = async (req, res) => {
   try {
     const { page, page_size, offset, limit } = getPaginationParams(req.query);
@@ -81,7 +67,7 @@ exports.getApartmentsInDebt = async (req, res) => {
   }
 };
 
-// Chi tiết tài chính một căn hộ cụ thể
+// Chi tiết tài chính một căn hộ
 exports.getApartmentFinancialSummary = async (req, res) => {
   try {
     const { apt_id } = req.params;
@@ -97,7 +83,7 @@ exports.getApartmentFinancialSummary = async (req, res) => {
   }
 };
 
-// Tổng quan tài chính toàn tòa nhà
+// Tổng quan tài chính toàn tòa
 exports.getBuildingFinancialSummary = async (req, res) => {
   try {
     const data = await paymentService.getBuildingFinancialSummary();
