@@ -59,7 +59,7 @@ export default function Home() {
       gradient: "from-orange-500 to-orange-600",
       shadowColor: "shadow-orange-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
-      path: "/app/(modules)/maintenance",
+      path: "/maintenance",
     },
     {
       icon: Building2,
@@ -68,7 +68,7 @@ export default function Home() {
       gradient: "from-cyan-500 to-cyan-600",
       shadowColor: "shadow-cyan-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
-      path: "/app/(modules)/building-info",
+      path: "/building-info",
     },
     {
       icon: Car,

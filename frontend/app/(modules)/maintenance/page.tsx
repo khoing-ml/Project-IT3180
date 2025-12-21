@@ -34,7 +34,7 @@ export default function MaintenancePage() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/maintenance");
+        const response = await fetch("http://localhost:3001/api/maintenance");
         const data = await response.json();
         setRequests(data);
         setLoading(false);
@@ -70,7 +70,7 @@ export default function MaintenancePage() {
     }
 
     try {
-      const response = await fetch("http://localhost:5001/api/maintenance", {
+      const response = await fetch("http://localhost:3001/api/maintenance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
