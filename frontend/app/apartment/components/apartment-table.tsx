@@ -8,14 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "./ui/pagination";
 import { Loader2 } from "lucide-react";
 
 export interface Column<T> {
@@ -88,67 +80,6 @@ export function ApartmentTable<T>({
           </TableBody>
         </Table>
       </div>
-
-      {pagination && pagination.total_pages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() =>
-                  pagination.page > 1 &&
-                  onPageChange?.(pagination.page - 1)
-                }
-                className={
-                  pagination.page === 1
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-
-            {Array.from(
-              { length: pagination.total_pages },
-              (_, i) => i + 1
-            )
-              .filter(
-                (p) =>
-                  p === 1 ||
-                  p === pagination.total_pages ||
-                  Math.abs(p - pagination.page) <= 1
-              )
-              .map((page, i, arr) => (
-                <div key={page} className="flex items-center gap-1">
-                  {i > 0 && page - arr[i - 1] > 1 && (
-                    <span className="px-2">...</span>
-                  )}
-                  <PaginationItem>
-                    <PaginationLink
-                      isActive={page === pagination.page}
-                      onClick={() => onPageChange?.(page)}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                </div>
-              ))}
-
-            <PaginationItem>
-              <PaginationNext
-                onClick={() =>
-                  pagination.page < pagination.total_pages &&
-                  onPageChange?.(pagination.page + 1)
-                }
-                className={
-                  pagination.page === pagination.total_pages
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
     </div>
   );
 }
