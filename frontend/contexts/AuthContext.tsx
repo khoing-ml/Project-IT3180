@@ -242,9 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Attempting login...');
       // Sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.username.includes('@') 
-          ? credentials.username 
-          : `${credentials.username}@bluemoon.com`, // Convert username to email
+        email: credentials.username, // Use email directly
         password: credentials.password,
       });
 

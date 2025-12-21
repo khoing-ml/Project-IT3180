@@ -39,8 +39,8 @@ const verifyToken = async (req, res, next) => {
         created_at: user.created_at
       };
       
-      // Attach user and minimal profile to request
-      req.user = user;
+      // Attach user and profile to request
+      req.user = { ...user, ...minimalProfile, role: minimalProfile.role };
       req.profile = minimalProfile;
       
       console.warn(`Profile not found for user ${user.id}, using auth metadata`);
@@ -49,7 +49,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     // Attach user and profile to request
-    req.user = user;
+    req.user = { ...user, ...profile, role: profile.role };
     req.profile = profile;
     
     next();

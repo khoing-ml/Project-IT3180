@@ -6,6 +6,8 @@ const billRoutes = require('./billRoutes');
 const vehicleRoutes = require('./vehicleRoute');
 const apartmentRoutes = require('./apartmentRoutes');
 const paymentRoutes = require('./paymentRoutes');
+const visitorRoutes = require('./visitorRoutes');
+const accessCardRoutes = require('./accessCardRoutes');
 
 /**
  * @swagger
@@ -67,5 +69,7 @@ router.use('/apartments', apartmentRoutes);
  *   description: Payment-related APIs
  */
 router.use('/payments', paymentRoutes);
+router.use('/visitors', visitorRoutes);
+router.use('/access-cards', accessCardRoutes);
 
 module.exports = router;
