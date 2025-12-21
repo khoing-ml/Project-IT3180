@@ -211,7 +211,7 @@ exports.deleteVisitor = async (req, res) => {
 
     // Only admin can delete
     if (userRole !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Only admin can delete visitor records' });
     }
 
     const { error } = await supabaseAdmin
