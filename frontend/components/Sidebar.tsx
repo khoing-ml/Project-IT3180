@@ -16,7 +16,9 @@ import {
   UsersRound,
   Table,
   ChevronRight,
-  Shield
+  Shield,
+  UserCheck,
+  Key
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -95,7 +97,7 @@ export default function Sidebar() {
           </div>
 
           {/* Admin Section - Only visible to admins */}
-          {hasPermission([UserRole.ADMIN]) && (
+          {hasPermission([UserRole.ADMIN, UserRole.MANAGER]) && (
             <div className="mb-6">
               <div className="flex items-center gap-2 px-4 pb-3">
                 <div className="h-px flex-1 bg-slate-700"></div>
@@ -122,8 +124,95 @@ export default function Sidebar() {
                   <ChevronRight className="w-4 h-4 opacity-70" />
                 )}
               </Link>
+
+              {/* Visitor Management */}
+              <Link
+                href="/admin/visitors"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                  pathname === '/admin/visitors'
+                    ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                {pathname === '/admin/visitors' && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-400 rounded-r-full"></div>
+                )}
+                <UserCheck className={`w-5 h-5 ${pathname === '/admin/visitors' ? 'text-white' : 'text-slate-400 group-hover:text-red-400'} transition-colors`} />
+                <span className="text-sm font-medium flex-1 text-left">Quản lý khách</span>
+                {pathname === '/admin/visitors' && (
+                  <ChevronRight className="w-4 h-4 opacity-70" />
+                )}
+              </Link>
+
+              {/* Access Control */}
+              <Link
+                href="/admin/access-control"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                  pathname === '/admin/access-control'
+                    ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                {pathname === '/admin/access-control' && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-400 rounded-r-full"></div>
+                )}
+                <Key className={`w-5 h-5 ${pathname === '/admin/access-control' ? 'text-white' : 'text-slate-400 group-hover:text-red-400'} transition-colors`} />
+                <span className="text-sm font-medium flex-1 text-left">Thẻ cư dân</span>
+                {pathname === '/admin/access-control' && (
+                  <ChevronRight className="w-4 h-4 opacity-70" />
+                )}
+              </Link>
             </div>
           )}
+
+          {/* User/Resident Features Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 px-4 pb-3">
+              <div className="h-px flex-1 bg-slate-700"></div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Cá nhân
+              </p>
+              <div className="h-px flex-1 bg-slate-700"></div>
+            </div>
+
+            {/* My Visitors */}
+            <Link
+              href="/my-visitors"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                pathname === '/my-visitors'
+                  ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {pathname === '/my-visitors' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
+              )}
+              <UserCheck className={`w-5 h-5 ${pathname === '/my-visitors' ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
+              <span className="text-sm font-medium flex-1 text-left">Khách của tôi</span>
+              {pathname === '/my-visitors' && (
+                <ChevronRight className="w-4 h-4 opacity-70" />
+              )}
+            </Link>
+
+            {/* My Cards */}
+            <Link
+              href="/my-cards"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                pathname === '/my-cards'
+                  ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {pathname === '/my-cards' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
+              )}
+              <Key className={`w-5 h-5 ${pathname === '/my-cards' ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
+              <span className="text-sm font-medium flex-1 text-left">Thẻ của tôi</span>
+              {pathname === '/my-cards' && (
+                <ChevronRight className="w-4 h-4 opacity-70" />
+              )}
+            </Link>
+          </div>
 
           {/* Pages Section */}
           <div className="pt-4">

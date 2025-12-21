@@ -3,6 +3,8 @@ const router = express.Router();
 
 // Import route modules
 const userRoutes = require('./userRoutes');
+const visitorRoutes = require('./visitorRoutes');
+const accessCardRoutes = require('./accessCardRoutes');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -15,5 +17,7 @@ router.get('/health', (req, res) => {
 
 // API routes
 router.use('/users', userRoutes);
+router.use('/visitors', visitorRoutes);
+router.use('/access-cards', accessCardRoutes);
 
 module.exports = router;

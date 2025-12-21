@@ -130,3 +130,163 @@ export const userAPI = {
     });
   },
 };
+
+// Visitor Management API
+export const visitorAPI = {
+  /**
+   * Get all visitors (admin/manager see all, residents see own)
+   */
+  getAll: async () => {
+    return apiRequest<any[]>('/visitors', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Get pending visitor requests (admin/manager only)
+   */
+  getPending: async () => {
+    return apiRequest<any[]>('/visitors/pending', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Get visitor by ID
+   */
+  getById: async (id: string) => {
+    return apiRequest<any>(`/visitors/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Create new visitor request
+   */
+  create: async (visitorData: {
+    visitor_name: string;
+    visitor_phone?: string;
+    visitor_email?: string;
+    purpose: string;
+    expected_arrival: string;
+    expected_departure?: string;
+    notes?: string;
+  }) => {
+    return apiRequest<any>('/visitors', {
+      method: 'POST',
+      body: JSON.stringify(visitorData),
+    });
+  },
+
+  /**
+   * Update visitor status (admin/manager only)
+   */
+  updateStatus: async (id: string, status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled', notes?: string) => {
+    return apiRequest<any>(`/visitors/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, notes }),
+    });
+  },
+
+  /**
+   * Cancel visitor request
+   */
+  cancel: async (id: string) => {
+    return apiRequest<any>(`/visitors/${id}/cancel`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * Delete visitor record (admin only)
+   */
+  delete: async (id: string) => {
+    return apiRequest<{ message: string }>(`/visitors/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Access Card Management API
+export const accessCardAPI = {
+  /**
+   * Get all access cards (admin/manager see all, residents see own)
+   */
+  getAll: async () => {
+    return apiRequest<any[]>('/access-cards', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Get card by ID
+   */
+  getById: async (id: string) => {
+    return apiRequest<any>(`/access-cards/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Get all cards for a resident (admin/manager only)
+   */
+  getByResident: async (residentId: string) => {
+    return apiRequest<any[]>(`/access-cards/resident/${residentId}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Get cards by status (admin/manager only)
+   */
+  getByStatus: async (status: 'active' | 'inactive' | 'lost' | 'blocked') => {
+    return apiRequest<any[]>(`/access-cards/status/${status}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Create new access card (admin/manager only)
+   */
+  create: async (cardData: {
+    resident_id: string;
+    card_number: string;
+    card_type?: 'resident' | 'guest' | 'staff';
+    expiry_date?: string;
+    notes?: string;
+  }) => {
+    return apiRequest<any>('/access-cards', {
+      method: 'POST',
+      body: JSON.stringify(cardData),
+    });
+  },
+
+  /**
+   * Update card status (admin/manager only)
+   */
+  updateStatus: async (id: string, status: 'active' | 'inactive' | 'lost' | 'blocked', reason?: string) => {
+    return apiRequest<any>(`/access-cards/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, reason_for_status: reason }),
+    });
+  },
+
+  /**
+   * Report card as lost
+   */
+  reportLost: async (id: string) => {
+    return apiRequest<any>(`/access-cards/${id}/report-lost`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * Delete card record (admin only)
+   */
+  delete: async (id: string) => {
+    return apiRequest<{ message: string }>(`/access-cards/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
