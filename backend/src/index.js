@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const routes = require('./routes');
@@ -15,6 +16,8 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -24,6 +27,8 @@ app.use((req, res, next) => {
 
 // API Routes
 app.use('/api', routes);
+app.use('/api/maintenance', require('./routes/maintenanceRoutes'));
+app.use('/api/building', require('./routes/buildingRoutes'));
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -32,7 +37,9 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
-      users: '/api/users'
+      users: '/api/users',
+      maintenance: '/api/maintenance',
+      building: '/api/building'
     }
   });
 });
@@ -55,6 +62,8 @@ app.listen(PORT, () => {
   console.log(`🚀 BlueMoon Backend Server running on port ${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}/api`);
   console.log(`🏥 Health check at http://localhost:${PORT}/api/health`);
+  console.log(`🔧 Maintenance API at http://localhost:${PORT}/api/maintenance`);
+  console.log(`🏢 Building API at http://localhost:${PORT}/api/building`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

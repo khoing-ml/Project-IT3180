@@ -50,6 +50,7 @@ export default function Home() {
       gradient: "from-purple-500 to-purple-600",
       shadowColor: "shadow-purple-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
+      path: "/bills",
     },
     {
       icon: Wrench,
@@ -58,6 +59,7 @@ export default function Home() {
       gradient: "from-orange-500 to-orange-600",
       shadowColor: "shadow-orange-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
+      path: "/app/(modules)/maintenance",
     },
     {
       icon: Building2,
@@ -66,6 +68,7 @@ export default function Home() {
       gradient: "from-cyan-500 to-cyan-600",
       shadowColor: "shadow-cyan-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
+      path: "/app/(modules)/building-info",
     },
     {
       icon: Car,
@@ -74,6 +77,7 @@ export default function Home() {
       gradient: "from-pink-500 to-pink-600",
       shadowColor: "shadow-pink-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER],
+      path: "/vehicles",
     },
     {
       icon: Clipboard,
@@ -157,24 +161,6 @@ export default function Home() {
               </p>
             </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {quickStats.map((stat, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 group"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`bg-gradient-to-br ${stat.gradient} rounded-xl p-3 shadow-lg`}>
-                    <stat.icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                <p className="text-slate-600 text-sm mb-1">{stat.label}</p>
-                <p className="text-slate-800 text-2xl font-bold">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Function Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {functionCards
@@ -183,8 +169,7 @@ export default function Home() {
               <button
                 key={index}
                 onClick={() => {
-                  if (card.title === "Quản lý xe") router.push("/vehicles");
-                  if (card.title === "Lập hóa đơn") router.push("/bills");
+                  if (card.path) router.push(card.path);
                 }}
                 className="group relative bg-white rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-left overflow-hidden"
               >
