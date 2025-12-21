@@ -1,7 +1,7 @@
 const paymentService = require('../repositories/paymentService');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helper');
 
-// Thống kê tổng đã thu của từng căn hộ (phân trang)
+// Thống kê tổng đã thu của từng căn hộ (phân trang + sắp xếp giảm dần)
 exports.getIncomeByApartment = async (req, res) => {
   try {
     const { page, page_size, offset, limit } = getPaginationParams(req.query);
@@ -12,7 +12,7 @@ exports.getIncomeByApartment = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Thống kê tổng đã thu theo căn hộ',
+      message: 'Thống kê tổng tiền đã thu theo từng căn hộ',
       result,
     });
   } catch (err) {
@@ -24,9 +24,10 @@ exports.getIncomeByApartment = async (req, res) => {
 exports.getIncomeByFloor = async (req, res) => {
   try {
     const data = await paymentService.getIncomeByFloor();
+
     res.status(200).json({
       success: true,
-      message: 'Thống kê tổng đã thu theo tầng',
+      message: 'Thống kê tổng tiền đã thu theo tầng',
       data,
     });
   } catch (err) {
@@ -38,9 +39,10 @@ exports.getIncomeByFloor = async (req, res) => {
 exports.getFinancialByFloor = async (req, res) => {
   try {
     const data = await paymentService.getFinancialByFloor();
+
     res.status(200).json({
       success: true,
-      message: 'Thống kê tài chính chi tiết theo tầng',
+      message: 'Thống kê tài chính chi tiết theo tầng (dựa trên hóa đơn hiện tại)',
       data,
     });
   } catch (err) {
@@ -48,7 +50,7 @@ exports.getFinancialByFloor = async (req, res) => {
   }
 };
 
-// Danh sách căn hộ đang nợ
+// Danh sách căn hộ đang nợ (pre_debt > 0)
 exports.getApartmentsInDebt = async (req, res) => {
   try {
     const { page, page_size, offset, limit } = getPaginationParams(req.query);
@@ -59,7 +61,7 @@ exports.getApartmentsInDebt = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Danh sách các căn hộ đang nợ',
+      message: 'Danh sách các căn hộ đang có nợ (dựa trên pre_debt hiện tại)',
       result,
     });
   } catch (err) {
@@ -67,15 +69,16 @@ exports.getApartmentsInDebt = async (req, res) => {
   }
 };
 
-// Chi tiết tài chính một căn hộ
+// Chi tiết tài chính một căn hộ cụ thể
 exports.getApartmentFinancialSummary = async (req, res) => {
   try {
     const { apt_id } = req.params;
+
     const data = await paymentService.getApartmentFinancialSummary(apt_id);
 
     res.status(200).json({
       success: true,
-      message: 'Thống kê tài chính chi tiết của căn hộ',
+      message: `Thống kê tài chính chi tiết căn hộ ${apt_id}`,
       data,
     });
   } catch (err) {
@@ -83,14 +86,14 @@ exports.getApartmentFinancialSummary = async (req, res) => {
   }
 };
 
-// Tổng quan tài chính toàn tòa
+// Tổng quan tài chính toàn tòa nhà
 exports.getBuildingFinancialSummary = async (req, res) => {
   try {
     const data = await paymentService.getBuildingFinancialSummary();
 
     res.status(200).json({
       success: true,
-      message: 'Thống kê tài chính tổng quan tòa nhà',
+      message: 'Thống kê tài chính tổng quan toàn tòa nhà',
       data,
     });
   } catch (err) {
