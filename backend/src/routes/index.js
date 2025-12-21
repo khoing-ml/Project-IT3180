@@ -2,8 +2,13 @@ const express = require('express');
 const router = express.Router();
 
 const userRoutes = require('./userRoutes');
+const billRoutes = require('./billRoutes');
+const vehicleRoutes = require('./vehicleRoute');
 const apartmentRoutes = require('./apartmentRoutes');
 const paymentRoutes = require('./paymentRoutes');
+const visitorRoutes = require('./visitorRoutes');
+const accessCardRoutes = require('./accessCardRoutes');
+const activityLogRoutes = require('./activityLogRoutes');
 
 /**
  * @swagger
@@ -49,6 +54,8 @@ router.get('/health', (req, res) => {
  *   description: User-related APIs
  */
 router.use('/users', userRoutes);
+router.use('/bills', billRoutes);
+router.use('/vehicles', vehicleRoutes);
 
 /**
  * @swagger
@@ -63,5 +70,8 @@ router.use('/apartments', apartmentRoutes);
  *   description: Payment-related APIs
  */
 router.use('/payments', paymentRoutes);
+router.use('/visitors', visitorRoutes);
+router.use('/access-cards', accessCardRoutes);
+router.use('/activity-logs', activityLogRoutes);
 
 module.exports = router;
