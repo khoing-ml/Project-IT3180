@@ -108,13 +108,16 @@ router.get('/debt-apartments', getApartmentsInDebt);
  * /api/payments/apartments/{apt_id}/financial-summary:
  *   get:
  *     summary: Chi tiết tài chính của một căn hộ cụ thể
- *     tags: [Payments & Financial]
+ *     tags:
+ *       - Payments & Financial
  *     parameters:
  *       - in: path
  *         name: apt_id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *         description: Mã căn hộ (ví dụ: A101)
+ *
  *     responses:
  *       200:
  *         description: Thông tin hóa đơn hiện tại và lịch sử thanh toán
@@ -123,23 +126,40 @@ router.get('/debt-apartments', getApartmentsInDebt);
  *             schema:
  *               type: object
  *               properties:
- *                 success: { type: boolean }
- *                 message: { type: string }
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  *                 data:
  *                   type: object
  *                   properties:
- *                     apt_id: { type: string }
- *                     new_charges_current: { type: number, description: "Các khoản phát sinh mới kỳ này" }
- *                     pre_debt: { type: number, description: "Nợ cũ mang sang" }
- *                     total_due_current: { type: number, description: "Tổng phải trả kỳ hiện tại" }
- *                     total_paid_all_time: { type: number, description: "Tổng đã thanh toán từ trước đến nay" }
- *                     current_remaining_debt: { type: number, description: "Nợ còn lại sau khi trừ tiền đã trả" }
+ *                     apt_id:
+ *                       type: string
+ *                     new_charges_current:
+ *                       type: number
+ *                       description: Các khoản phát sinh mới kỳ này
+ *                     pre_debt:
+ *                       type: number
+ *                       description: Nợ cũ mang sang
+ *                     total_due_current:
+ *                       type: number
+ *                       description: Tổng phải trả kỳ hiện tại
+ *                     total_paid_all_time:
+ *                       type: number
+ *                       description: Tổng đã thanh toán từ trước đến nay
+ *                     current_remaining_debt:
+ *                       type: number
+ *                       description: Nợ còn lại sau khi trừ tiền đã trả
  *                     payments:
  *                       type: array
- *                       description: "Lịch sử các lần thanh toán"
- *                       items: { type: object }
+ *                       description: Lịch sử các lần thanh toán
+ *                       items:
+ *                         type: object
  */
-router.get('/apartments/:apt_id/financial-summary', getApartmentFinancialSummary);
+router.get(
+  '/apartments/:apt_id/financial-summary',
+  getApartmentFinancialSummary
+);
 
 /**
  * @swagger
