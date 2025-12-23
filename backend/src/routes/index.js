@@ -9,6 +9,7 @@ const paymentRoutes = require('./paymentRoutes');
 const visitorRoutes = require('./visitorRoutes');
 const accessCardRoutes = require('./accessCardRoutes');
 const activityLogRoutes = require('./activityLogRoutes');
+const notificationRoutes = require('./notificationRoutes');
 
 /**
  * @swagger
@@ -21,6 +22,8 @@ const activityLogRoutes = require('./activityLogRoutes');
  *     description: Apartment management APIs
  *   - name: Payments
  *     description: Payment & billing APIs
+ *   - name: Notifications
+ *     description: Notification management APIs
  */
 
 /**
@@ -73,5 +76,12 @@ router.use('/payments', paymentRoutes);
 router.use('/visitors', visitorRoutes);
 router.use('/access-cards', accessCardRoutes);
 router.use('/activity-logs', activityLogRoutes);
+
+/**
+ * @swagger
+ * /api/notifications:
+ *   description: Notification-related APIs
+ */
+router.use('/notifications', notificationRoutes);
 
 module.exports = router;

@@ -1,5 +1,24 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 
+// Helper function to create notifications
+const createNotification = async (userId, type, title, message, link = null, metadata = null) => {
+  try {
+    await supabaseAdmin.from('notifications').insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      link,
+      metadata,
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    // Don't throw error - notifications shouldn't break main functionality
+  }
+};
+
 // Get all visitors (admin/manager) or own visitors (resident)
 exports.getAllVisitors = async (req, res) => {
   try {
@@ -103,6 +122,26 @@ exports.createVisitor = async (req, res) => {
       `);
 
     if (error) throw error;
+    
+    // Create notification for managers/admins about new visitor request
+    const managerData = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'manager']);
+    
+    if (managerData.data) {
+      for (const manager of managerData.data) {
+        await createNotification(
+          manager.id,
+          'info',
+          'Yêu cầu đăng ký khách mới',
+          `${data[0]?.resident?.full_name || 'Cư dân'} (${data[0]?.resident?.apartment_number}) đã yêu cầu đăng ký khách: ${visitor_name}`,
+          '/admin/visitors',
+          { visitor_id: data[0]?.id, apartment: data[0]?.resident?.apartment_number }
+        );
+      }
+    }
+    
     res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating visitor:', error);
@@ -151,6 +190,25 @@ exports.updateVisitorStatus = async (req, res) => {
       `);
 
     if (error) throw error;
+    
+    // Create notification for resident about visitor status update
+    if (data[0]?.resident_id && (status === 'approved' || status === 'rejected')) {
+      const statusMessage = status === 'approved' 
+        ? `Yêu cầu đăng ký khách ${data[0]?.visitor_name} của bạn đã được phê duyệt.`
+        : `Yêu cầu đăng ký khách ${data[0]?.visitor_name} của bạn đã bị từ chối.`;
+      
+      const notificationType = status === 'approved' ? 'success' : 'warning';
+      
+      await createNotification(
+        data[0].resident_id,
+        notificationType,
+        status === 'approved' ? 'Khách được phê duyệt' : 'Khách bị từ chối',
+        statusMessage,
+        '/my-visitors',
+        { visitor_id: id, status }
+      );
+    }
+    
     res.json(data[0]);
   } catch (error) {
     console.error('Error updating visitor:', error);

@@ -236,6 +236,48 @@ CREATE TRIGGER update_access_cards_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ==============================================
+-- 6. BILL CONFIGURATION TABLE
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS bill_configurations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  period TEXT NOT NULL UNIQUE, -- e.g., "2025-01" for January 2025
+  services JSONB NOT NULL, -- Array of service objects: [{name, unit_cost, number_of_units, unit}, ...]
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed')),
+  created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  published_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Enable RLS for bill_configurations
+ALTER TABLE bill_configurations ENABLE ROW LEVEL SECURITY;
+
+-- Bill Configurations RLS Policies
+DROP POLICY IF EXISTS "Admins can manage bill configurations" ON bill_configurations;
+DROP POLICY IF EXISTS "Users can view active bill configurations" ON bill_configurations;
+
+CREATE POLICY "Admins can manage bill configurations" 
+  ON bill_configurations FOR ALL 
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'manager')));
+
+CREATE POLICY "Users can view active bill configurations" 
+  ON bill_configurations FOR SELECT 
+  USING (status = 'active' OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'manager')));
+
+-- Indexes for bill_configurations
+CREATE INDEX IF NOT EXISTS idx_bill_configurations_period ON bill_configurations(period);
+CREATE INDEX IF NOT EXISTS idx_bill_configurations_status ON bill_configurations(status);
+CREATE INDEX IF NOT EXISTS idx_bill_configurations_created_at ON bill_configurations(created_at DESC);
+
+-- Trigger for bill_configurations updated_at
+DROP TRIGGER IF EXISTS update_bill_configurations_updated_at ON bill_configurations;
+CREATE TRIGGER update_bill_configurations_updated_at 
+  BEFORE UPDATE ON bill_configurations 
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ==============================================
 -- SETUP COMPLETE
 -- ==============================================
 -- Next steps:

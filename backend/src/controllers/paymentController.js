@@ -1,10 +1,63 @@
 const paymentService = require('../repositories/paymentService');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helper');
+const { supabaseAdmin } = require('../config/supabase');
+
+// Helper function to create notifications
+const createNotification = async (userId, type, title, message, link = null, metadata = null) => {
+  try {
+    await supabaseAdmin.from('notifications').insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      link,
+      metadata,
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    // Don't throw error - notifications shouldn't break main functionality
+  }
+};
+
+// Helper function to get apartment owner's user ID
+const getApartmentOwnerUserId = async (apt_id) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('apartments')
+      .select('owner_id')
+      .eq('id', apt_id)
+      .single();
+
+    if (error) throw error;
+    return data?.owner_id;
+  } catch (error) {
+    console.error('Error fetching apartment owner:', error);
+    return null;
+  }
+};
 
 // Lập hóa đơn tháng 
 exports.createBill = async (req, res) => {
   try {
     const data = await paymentService.createMonthlyBill(req.body);
+    
+    // Create notifications for apartment owner about new bill
+    if (data?.apt_id) {
+      const ownerId = await getApartmentOwnerUserId(data.apt_id);
+      if (ownerId) {
+        await createNotification(
+          ownerId,
+          'warning',
+          'Hóa đơn mới',
+          `Hóa đơn tháng ${data.period || 'này'} của căn hộ ${data.apt_id} đã được tạo`,
+          '/payments',
+          { apt_id: data.apt_id, period: data.period, total: data.total }
+        );
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Lập hóa đơn thành công',
