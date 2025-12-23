@@ -64,6 +64,7 @@ export default function Home() {
       gradient: "from-blue-500 to-blue-600",
       shadowColor: "shadow-blue-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
+      path: "/apartment",
     },
     {
       icon: BarChart3,
@@ -72,6 +73,7 @@ export default function Home() {
       gradient: "from-green-500 to-green-600",
       shadowColor: "shadow-green-500/50",
       requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
+      path: "/financial",
     },
     {
       icon: FileText,

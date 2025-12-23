@@ -19,7 +19,8 @@ import {
   Shield,
   UserCheck,
   Key,
-  Activity
+  Activity,
+  Building2
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,8 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", active: pathname === "/", path: "/" },
+    { icon: Building2, label: "Danh sách hộ dân", active: pathname === "/apartment", path: "/apartment" },
+    { icon: BarChart3, label: "Thống kê tài chính", active: pathname === "/financial", path: "/financial" },
     { icon: Package, label: "Products", active: false, path: "/products" },
     { icon: Heart, label: "Favorites", active: false, path: "/favorites" },
     { icon: Inbox, label: "Inbox", active: false, path: "/inbox" },

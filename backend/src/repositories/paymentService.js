@@ -1,5 +1,8 @@
-const { supabase, supabaseAdmin } = require('../config/supabase.js');
+const { supabase } = require('../config/supabase.js');
 
+/**
+ * Thống kê tổng đã thu của từng căn hộ (phân trang, sắp xếp giảm dần theo tiền thu)
+ */
 exports.getIncomeByApartmentPaginated = async (offset = 0, limit = 20) => {
   const { data: payments, error: payError } = await supabase
     .from('payments')
@@ -7,15 +10,15 @@ exports.getIncomeByApartmentPaginated = async (offset = 0, limit = 20) => {
 
   if (payError) throw payError;
 
-  const incomeMap = payments.reduce((acc, p) => {
+  const incomeMap = (payments || []).reduce((acc, p) => {
     acc[p.apt_id] = (acc[p.apt_id] || 0) + Number(p.amount);
     return acc;
   }, {});
 
   const { data: apartments, error: aptError, count } = await supabase
     .from('apartments')
-    .select('apt_id, owner_name, floor', { count: 'exact' })  // Bỏ block
-    .order('apt_id')  // Chỉ order theo apt_id
+    .select('apt_id, owner_name, floor', { count: 'exact' })
+    .order('apt_id')
     .range(offset, offset + limit - 1);
 
   if (aptError) throw aptError;
@@ -32,20 +35,8 @@ exports.getIncomeByApartmentPaginated = async (offset = 0, limit = 20) => {
   return { data: resultData, total: count || 0 };
 };
 
-exports.createMonthlyBill = async (billData) => {
-  const { data, error } = await supabaseAdmin
-    .from('monthly_bills')
-    .insert([billData])  
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-
 /**
- * Thống kê đã thu theo floor 
+ * Thống kê tổng đã thu theo tầng
  */
 exports.getIncomeByFloor = async () => {
   const { data: payments, error } = await supabase
@@ -62,21 +53,17 @@ exports.getIncomeByFloor = async () => {
     return acc;
   }, {});
 
-  return Object.keys(floorMap)
-    .map(key => ({
-      floor: parseInt(key),  // chuyển về số để sort đúng
+  return Object.entries(floorMap)
+    .map(([key, value]) => ({
+      floor: isNaN(key) ? null : parseInt(key),
       display: `Tầng ${key}`,
-      total_income: floorMap[key]
+      total_income: value
     }))
-    .sort((a, b) => a.floor - b.floor);  // Sắp xếp tầng tăng dần
+    .sort((a, b) => (a.floor ?? -1) - (b.floor ?? -1));
 };
 
-
 /**
- * Thống kê tài chính đầy đủ theo tầng:
- * - Tổng đã thu (total_paid)
- * - Tổng phải thu (total_billed)
- * - Tổng nợ hiện tại của tầng (dựa trên pre_debt kỳ mới nhất mỗi căn)
+ * Thống kê tài chính chi tiết theo tầng (dựa trên hóa đơn hiện tại trong bảng bills)
  */
 exports.getFinancialByFloor = async () => {
   const { data: payments, error: payError } = await supabase
@@ -92,91 +79,63 @@ exports.getFinancialByFloor = async () => {
   }, {});
 
   const { data: bills, error: billError } = await supabase
-    .from('monthly_bills')
-    .select('total, apartments!inner(floor)');
+    .from('bills')
+    .select('electric, water, service, vehicles, pre_debt, apartments!inner(floor)');
 
   if (billError) throw billError;
 
-  const billedMap = (bills || []).reduce((acc, b) => {
+  const billedMap = {}; 
+  const debtMap = {};  
+
+  (bills || []).forEach(b => {
     const floor = b.apartments.floor ?? 'Không xác định';
-    acc[floor] = (acc[floor] || 0) + Number(b.total || 0);
-    return acc;
-  }, {});
+    const currentNew = Number(b.electric || 0) + Number(b.water || 0) + Number(b.service || 0) + Number(b.vehicles || 0);
+    const totalDue = currentNew + Number(b.pre_debt || 0);
 
-  const { data: allLatestBills, error: latestError } = await supabase
-    .from('monthly_bills')
-    .select('apt_id, pre_debt, apartments!inner(floor)')
-    .order('period', { ascending: false });
+    billedMap[floor] = (billedMap[floor] || 0) + totalDue;
+    debtMap[floor] = (debtMap[floor] || 0) + Number(b.pre_debt || 0);
+  });
 
-  if (latestError) throw latestError;
-
-  const latestDebtMap = {};
-  for (const bill of allLatestBills || []) {
-    if (!latestDebtMap[bill.apt_id]) {
-      latestDebtMap[bill.apt_id] = bill;
-    }
-  }
-
-  const debtMap = Object.values(latestDebtMap).reduce((acc, b) => {
-    const floor = b.apartments.floor ?? 'Không xác định';
-    acc[floor] = (acc[floor] || 0) + Number(b.pre_debt || 0);
-    return acc;
-  }, {});
-
-  const floors = new Set([
-    ...Object.keys(paidMap),
-    ...Object.keys(billedMap),
-    ...Object.keys(debtMap)
-  ]);
+  const floors = new Set([...Object.keys(paidMap), ...Object.keys(billedMap), ...Object.keys(debtMap)]);
 
   return Array.from(floors)
     .map(key => ({
-      floor: parseInt(key) || 0,
+      floor: isNaN(key) ? null : parseInt(key),
       display: `Tầng ${key}`,
       total_paid: paidMap[key] || 0,
-      total_billed: billedMap[key] || 0,
-      current_debt: debtMap[key] || 0,
+      total_due_current: billedMap[key] || 0,     
+      current_pre_debt: debtMap[key] || 0,        
       collection_rate: billedMap[key] > 0
         ? ((paidMap[key] / billedMap[key]) * 100).toFixed(2) + '%'
         : '0%'
     }))
-    .sort((a, b) => a.floor - b.floor);
+    .sort((a, b) => (a.floor ?? -1) - (b.floor ?? -1));
 };
 
 /**
- * Danh sách các căn hộ còn nợ
+ * Danh sách các căn hộ đang nợ (pre_debt > 0 trong bảng bills hiện tại)
  */
 exports.getApartmentsInDebt = async (offset = 0, limit = 20) => {
   const { data: bills, error } = await supabase
-    .from('monthly_bills')
+    .from('bills')
     .select(`
       apt_id,
-      period,
       pre_debt,
       apartments (
         owner_name,
         floor
       )
     `)
-    .order('period', { ascending: false });
+    .gt('pre_debt', 0);
 
   if (error) throw error;
 
-  const latestMap = {};
-  for (const b of bills) {
-    if (!latestMap[b.apt_id]) {
-      latestMap[b.apt_id] = b;
-    }
-  }
-
-  const debtList = Object.values(latestMap)
-    .filter(b => Number(b.pre_debt) > 0)
+  const debtList = (bills || [])
     .map(b => ({
       apt_id: b.apt_id,
       owner_name: b.apartments.owner_name,
       floor: b.apartments.floor,
-      debt: Number(b.pre_debt),
-      period: b.period
+      debt: Number(b.pre_debt)
     }))
     .sort((a, b) => b.debt - a.debt);
 
@@ -187,21 +146,23 @@ exports.getApartmentsInDebt = async (offset = 0, limit = 20) => {
 };
 
 /**
- * Thống kê thu - chi - nợ chi tiết của một căn hộ cụ thể
- * Bao gồm:
- * - Tổng tiền phải thu (tổng hóa đơn tất cả các kỳ)
- * - Tổng tiền đã thanh toán
- * - Nợ hiện tại (pre_debt của kỳ mới nhất)
- * - Danh sách các kỳ hóa đơn kèm trạng thái thanh toán
+ * Chi tiết tài chính một căn hộ cụ thể (dựa trên hóa đơn hiện tại + lịch sử thanh toán)
  */
 exports.getApartmentFinancialSummary = async (apt_id) => {
-  const { data: bills, error: billError } = await supabase
-    .from('monthly_bills')
-    .select('id, period, electric, water, service, vehicles, pre_debt, total, created_at')
+  const { data: bill, error: billError } = await supabase
+    .from('bills')
+    .select('electric, water, service, vehicles, pre_debt')
     .eq('apt_id', apt_id)
-    .order('period', { ascending: false });
+    .single();
 
-  if (billError) throw billError;
+  if (billError && billError.code !== 'PGRST116') throw billError; 
+
+  const newCharges = bill
+    ? Number(bill.electric || 0) + Number(bill.water || 0) + Number(bill.service || 0) + Number(bill.vehicles || 0)
+    : 0;
+
+  const preDebt = Number(bill?.pre_debt || 0);
+  const totalDueCurrent = newCharges + preDebt;
 
   const { data: payments, error: payError } = await supabase
     .from('payments')
@@ -211,43 +172,23 @@ exports.getApartmentFinancialSummary = async (apt_id) => {
 
   if (payError) throw payError;
 
-  const totalBilled = bills.reduce((sum, b) => sum + Number(b.total || 0), 0);
-  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalPaidAllTime = (payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  const currentDebt = bills.length > 0 ? Number(bills[0].pre_debt || 0) : 0;
-  const latestPeriod = bills.length > 0 ? bills[0].period : null;
-
-  const periodsSummary = bills.map(bill => {
-    const paidForThisPeriod = payments
-      .filter(p => p.period === bill.period)
-      .reduce((sum, p) => sum + Number(p.amount), 0);
-
-    return {
-      period: bill.period,
-      total_bill: Number(bill.total),
-      paid_amount: paidForThisPeriod,
-      remaining_debt_this_period: Number(bill.total) - paidForThisPeriod,
-      pre_debt_used: Number(bill.pre_debt), 
-      status: paidForThisPeriod >= Number(bill.total) ? 'paid' : paidForThisPeriod > 0 ? 'partial' : 'unpaid'
-    };
-  });
+  const currentRemainingDebt = totalDueCurrent - totalPaidAllTime > 0 ? totalDueCurrent - totalPaidAllTime : 0;
 
   return {
     apt_id,
-    latest_period: latestPeriod,
-    total_billed: totalBilled,        
-    total_paid: totalPaid,            
-    current_debt: currentDebt,        
-    periods: periodsSummary           
+    new_charges_current: newCharges,          
+    pre_debt: preDebt,                         
+    total_due_current: totalDueCurrent,        
+    total_paid_all_time: totalPaidAllTime,     
+    current_remaining_debt: currentRemainingDebt,
+    payments: payments || []
   };
 };
 
 /**
- * Thống kê tài chính tổng quan của toàn bộ tòa nhà
- * - Tổng thu (đã thanh toán)
- * - Tổng phải thu (tổng hóa đơn tất cả kỳ)
- * - Tổng nợ hiện tại (tổng pre_debt của kỳ mới nhất mỗi căn)
- * - Số căn hộ đang nợ
+ * Thống kê tài chính tổng quan toàn tòa nhà
  */
 exports.getBuildingFinancialSummary = async () => {
   const { data: allPayments, error: payError } = await supabase
@@ -256,40 +197,25 @@ exports.getBuildingFinancialSummary = async () => {
 
   if (payError) throw payError;
 
-  const totalIncome = allPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalIncome = (allPayments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  const { data: allBills, error: billError } = await supabase
-    .from('monthly_bills')
-    .select('apt_id, period, total, pre_debt')
-    .order('apt_id')
-    .order('period', { ascending: false });
+  const { data: bills, error: billError } = await supabase
+    .from('bills')
+    .select('electric, water, service, vehicles, pre_debt');
 
   if (billError) throw billError;
 
-  if (allBills.length === 0) {
-    return {
-      total_income: totalIncome,
-      total_billed: 0,
-      total_current_debt: 0,
-      apartments_in_debt: 0,
-      total_apartments: 0
-    };
-  }
+  let totalDueCurrent = 0;
+  let totalPreDebt = 0;
+  let apartmentsInDebt = 0;
 
-  const totalBilled = allBills.reduce((sum, b) => sum + Number(b.total || 0), 0);
-
-  const latestBillPerApt = {};
-  for (const bill of allBills) {
-    if (!latestBillPerApt[bill.apt_id]) {
-      latestBillPerApt[bill.apt_id] = bill;
-    }
-  }
-
-  const totalCurrentDebt = Object.values(latestBillPerApt)
-    .reduce((sum, b) => sum + Number(b.pre_debt || 0), 0);
-
-  const apartmentsInDebt = Object.values(latestBillPerApt)
-    .filter(b => Number(b.pre_debt || 0) > 0).length;
+  (bills || []).forEach(b => {
+    const newCharges = Number(b.electric || 0) + Number(b.water || 0) + Number(b.service || 0) + Number(b.vehicles || 0);
+    const due = newCharges + Number(b.pre_debt || 0);
+    totalDueCurrent += due;
+    totalPreDebt += Number(b.pre_debt || 0);
+    if (Number(b.pre_debt || 0) > 0) apartmentsInDebt++;
+  });
 
   const { count: totalApartments } = await supabase
     .from('apartments')
@@ -297,12 +223,12 @@ exports.getBuildingFinancialSummary = async () => {
 
   return {
     total_income: totalIncome,
-    total_billed: totalBilled,
-    total_current_debt: totalCurrentDebt,
+    total_due_current: totalDueCurrent,         
+    total_pre_debt: totalPreDebt,               
     apartments_in_debt: apartmentsInDebt,
     total_apartments: totalApartments || 0,
-    debt_ratio: totalApartments > 0 
-      ? ((apartmentsInDebt / totalApartments) * 100).toFixed(2) + '%' 
+    debt_ratio: totalApartments > 0
+      ? ((apartmentsInDebt / totalApartments) * 100).toFixed(2) + '%'
       : '0%'
   };
 };
