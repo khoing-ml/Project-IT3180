@@ -90,11 +90,17 @@ exports.getVisitorById = async (req, res) => {
   }
 };
 
-// Create new visitor request
+// Create new visitor request (Residents only)
 exports.createVisitor = async (req, res) => {
   try {
     const { visitor_name, visitor_phone, visitor_email, purpose, expected_arrival, expected_departure, notes } = req.body;
     const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    // Only residents can register visitors
+    if (userRole !== 'user') {
+      return res.status(403).json({ error: 'Only residents can register visitors' });
+    }
 
     // Validate required fields
     if (!visitor_name || !purpose || !expected_arrival) {
@@ -263,7 +269,7 @@ exports.deleteVisitor = async (req, res) => {
 
     // Only admin can delete
     if (userRole !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Only admin can delete visitor records' });
     }
 
     const { error } = await supabaseAdmin
@@ -302,6 +308,79 @@ exports.getPendingVisitors = async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching pending visitors:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get approved visitors (for security guard to check at entrance)
+exports.getApprovedVisitors = async (req, res) => {
+  try {
+    const { date } = req.query; // Optional: filter by date (YYYY-MM-DD)
+    
+    let query = supabaseAdmin
+      .from('visitors')
+      .select(`
+        *,
+        resident:resident_id(id, username, full_name, apartment_number, email),
+        approver:approved_by(id, username, full_name)
+      `)
+      .eq('status', 'approved')
+      .order('expected_arrival', { ascending: true });
+
+    // Filter by date if provided
+    if (date) {
+      const startDate = new Date(date).toISOString().split('T')[0];
+      const endDate = new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      query = query
+        .gte('expected_arrival', `${startDate}T00:00:00`)
+        .lt('expected_arrival', `${endDate}T00:00:00`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching approved visitors:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Mark visitor as checked in (security guard confirms arrival)
+exports.checkInVisitor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get current visitor
+    const { data: visitor, error: fetchError } = await supabaseAdmin
+      .from('visitors')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Check if status is approved
+    if (visitor.status !== 'approved') {
+      return res.status(400).json({ error: 'Visitor not approved' });
+    }
+
+    // Mark as completed
+    const { data, error } = await supabaseAdmin
+      .from('visitors')
+      .update({ status: 'completed' })
+      .eq('id', id)
+      .select(`
+        *,
+        resident:resident_id(id, username, full_name, apartment_number, email),
+        approver:approved_by(id, username, full_name)
+      `);
+
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Error checking in visitor:', error);
     res.status(500).json({ error: error.message });
   }
 };
