@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Plus, AlertCircle, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import BackButton from "@/components/BackButton";
+import Header from "@/components/Header";
 
 interface MaintenanceRequest {
   id: string;
@@ -113,11 +116,22 @@ export default function MaintenancePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <div>
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center gap-1">
+      <Sidebar />
+      <div className="ml-72">
+        <Header />
+        
+        {/* Content */}
+        <div className="p-6">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton />
+          </div>
+          
+          {/* Header */}
+          <div className="bg-white shadow-lg rounded-lg">
+            <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+              <div>
+                <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center gap-1">
               <ArrowLeft className="w-4 h-4" /> Quay lại
             </Link>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
@@ -291,5 +305,8 @@ export default function MaintenancePage() {
         </div>
       </div>
     </div>
+  </div>
+</div>
   );
 }
+

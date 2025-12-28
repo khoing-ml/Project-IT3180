@@ -33,42 +33,6 @@ exports.createBill = async (req, res) => {
 
 // Thống kê tổng đã thu của từng căn hộ (phân trang + sắp xếp giảm dần)
 exports.getIncomeByApartment = async (req, res) => {
-<<<<<<< HEAD
-// Lập hóa đơn tháng 
-exports.createBill = async (req, res) => {
-  try {
-    const data = await paymentService.createMonthlyBill(req.body);
-    
-    // Create notifications for apartment owner about new bill
-    if (data?.apt_id) {
-      const ownerId = await getApartmentOwnerUserId(data.apt_id);
-      if (ownerId) {
-        await createNotification(
-          ownerId,
-          'warning',
-          'Hóa đơn mới',
-          `Hóa đơn tháng ${data.period || 'này'} của căn hộ ${data.apt_id} đã được tạo`,
-          '/payments',
-          { apt_id: data.apt_id, period: data.period, total: data.total }
-        );
-      }
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Lập hóa đơn thành công',
-      data,
-    });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-};
-
-// Thống kê tổng đã thu của từng căn hộ (phân trang)
-=======
-// Thống kê tổng đã thu của từng căn hộ (phân trang + sắp xếp giảm dần)
->>>>>>> origin/dat-financial-apartment
-exports.getIncomeByApartment = async (req, res) => {
   try {
     const { page, page_size, offset, limit } = getPaginationParams(req.query);
 

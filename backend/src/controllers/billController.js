@@ -258,7 +258,18 @@ class BillController {
             const start = (page_number - 1) * page_size;
             const end = start + page_size - 1;
 
-            const { data, error } = await this.repo.query_with_filter(filter, start, end);
+            // `filter` may arrive as a JSON string from the client; parse if necessary
+            let parsedFilter = filter;
+            if (typeof filter === 'string' && filter) {
+                try {
+                    parsedFilter = JSON.parse(filter);
+                } catch (e) {
+                    // if parsing fails, keep original string
+                    parsedFilter = filter;
+                }
+            }
+
+            const { data, error } = await this.repo.query_with_filter(parsedFilter, start, end);
 
             if(error) {
                 throw new Error(error.message);
@@ -267,7 +278,7 @@ class BillController {
             result.data = data;
             result.current_page = page_number;
             result.page_size = page_size;
-            const {count, error: countError} = await this.repo.count_all_with_filter(filter);
+            const {count, error: countError} = await this.repo.count_all_with_filter(parsedFilter);
             if(countError) {
                 console.warn("Unable to retrieve total document: ", countError.message);
             }
@@ -289,18 +300,48 @@ class BillController {
             if(!apt_id) {
                 throw new Error("No apt_id found!");
             }
-            const bill = {
-                electric: 0,
-                water: 0,
-                service: 0,
-                vehicles: 0,
-                pre_debt: 0
-            };
-            const {data, error} = await this.repo.update(bill, apt_id);
+            // Mark bill as paid ("Đã thu") and record a payment for the period if none exists
+            // Determine period for the bill: prefer period in body, otherwise use most recent bill
+            const period = req.body.period || null;
+            let billPeriod = period;
+            if (!billPeriod) {
+                const { data: existingBills, error: fetchErr } = await this.repo.query(apt_id);
+                if (!fetchErr && existingBills && existingBills.length > 0) {
+                    billPeriod = existingBills[0].period || null;
+                }
+            }
+
+            // Find the bill record to compute amount
+            const { data: billsData, error: billErr } = await this.repo.query(apt_id);
+            if (billErr) throw billErr;
+            const targetBill = (Array.isArray(billsData) ? billsData.find(b => (billPeriod ? b.period === billPeriod : true)) : null) || (Array.isArray(billsData) && billsData[0]) || null;
+            const amount = targetBill ? (Number(targetBill.total || 0) || (Number(targetBill.electric || 0) + Number(targetBill.water || 0) + Number(targetBill.service || 0) + Number(targetBill.vehicles || 0) + Number(targetBill.pre_debt || 0))) : 0;
+
+            // Check if a payment already exists for apt_id+period to avoid duplicates
+            let paymentsExist = false;
+            try {
+                const pm = await this.repo.findPayments(apt_id, billPeriod);
+                if (pm && pm.data && pm.data.length > 0) paymentsExist = true;
+            } catch (e) {
+                console.warn('Failed to check existing payments', e);
+            }
+
+            if (!paymentsExist && amount > 0) {
+                // record payment
+                const payload = { apt_id, amount };
+                if (billPeriod) payload.period = billPeriod;
+                const { data: payData, error: payErr } = await this.repo.accrue_fee(apt_id, payload);
+                if (payErr) console.warn('Failed to record payment during reset', payErr.message || payErr);
+            }
+
+            // mark bill as paid
+            const updateObj = { paid: true, paid_at: new Date().toISOString() };
+            if (billPeriod) updateObj.period = billPeriod;
+            const {data, error} = await this.repo.update(updateObj, { apt_id, period: billPeriod });
             if(error) {
                 throw new Error(error.message);
             }
-            return res.status(200).json({message: "ok"});
+            return res.status(200).json({message: "ok", data: data});
         } 
         catch(error) {
             return res.status(500).json({message: error.message});
@@ -320,34 +361,73 @@ class BillController {
         }
     }
 
+    // Return aggregated totals for a period
+    async summary(req, res) {
+        try {
+            const { period } = req.query;
+            if (!period) {
+                return res.status(400).json({ message: 'Missing period parameter' });
+            }
+
+            // Use a DB-side aggregate function to compute accurate totals across all rows for the period
+            const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('get_period_summary', { p_period: period });
+            if (rpcErr) throw rpcErr;
+            // rpc returns an array with one row
+            const row = Array.isArray(rpcData) && rpcData.length > 0 ? rpcData[0] : null;
+            if (!row) {
+                return res.status(200).json({ period, total_due: 0, total_received: 0, total_bills: 0, paid_count: 0, unpaid_count: 0 });
+            }
+            return res.status(200).json(row);
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
+
     async collect_bill(req, res) {
         try {
             const {
                 apt_id,
-                total
+                                total,
+                                period
             } = req.body;
             if(!apt_id) {
                 throw new Error("No apt found");
             }
-            const {data, error} = await this.repo.accrue_fee(apt_id, total);
+                        // determine period: prefer provided period, otherwise use bill's period
+                        let billPeriod = period || null;
+                        if (!billPeriod) {
+                            const { data: existingBills, error: fetchErr } = await this.repo.query(apt_id);
+                            if (!fetchErr && existingBills && existingBills.length > 0) {
+                                billPeriod = existingBills[0].period || null;
+                            }
+                        }
+
+                        const paymentPayload = { apt_id, amount: total };
+                        if (billPeriod) paymentPayload.period = billPeriod;
+
+                        const { data, error } = await this.repo.accrue_fee(apt_id, paymentPayload);
             if(error) {
                 throw new Error(error.message);
             }
-            
-            // Create success notification for apartment owner
-            const ownerId = await getApartmentOwnerUserId(apt_id);
-            if (ownerId) {
-              await createNotification(
-                ownerId,
-                'success',
-                'Thanh toán hóa đơn thành công',
-                `Hóa đơn của căn hộ ${apt_id} đã được thanh toán thành công. Số tiền: ${total?.toLocaleString('vi-VN')}đ`,
-                '/payments',
-                { apt_id, amount: total }
-              );
-            }
-            
-            return res.status(200).json({message: "OK", data: data});
+                        // mark the bill as paid (for that period)
+                        const updateObj = { paid: true, paid_at: new Date().toISOString() };
+                        if (billPeriod) updateObj.period = billPeriod;
+                        await this.repo.update(updateObj, apt_id);
+
+                        // Create success notification for apartment owner
+                        const ownerId = await getApartmentOwnerUserId(apt_id);
+                        if (ownerId) {
+                            await createNotification(
+                                ownerId,
+                                'success',
+                                'Thanh toán hóa đơn thành công',
+                                `Hóa đơn của căn hộ ${apt_id} đã được thanh toán thành công. Số tiền: ${total?.toLocaleString('vi-VN')}đ`,
+                                '/payments',
+                                { apt_id, amount: total, period: billPeriod }
+                            );
+                        }
+
+                        return res.status(200).json({message: "OK", data: data});
         }
         catch(error) {
             return res.status(500).json({message: error.message});
@@ -356,28 +436,25 @@ class BillController {
 
     async setupBills(req, res) {
         try {
+            // Now used as service price configuration: period is optional, services must include name, unit_cost and unit
             const { period, services } = req.body;
             const userId = req.user?.id; // Assuming auth middleware sets user info
 
             // Validate input
-            if (!period || !services || !Array.isArray(services)) {
-                throw new Error("Period and services array are required");
+            if (!services || !Array.isArray(services) || services.length === 0) {
+                throw new Error("Services array is required and cannot be empty");
             }
 
-            if (services.length === 0) {
-                throw new Error("At least one service must be configured");
-            }
-
-            // Validate each service
+            // Validate each service - for price configuration we require name, unit_cost and unit. number_of_units is optional.
             services.forEach((service, index) => {
-                if (!service.name || service.unit_cost === undefined || service.number_of_units === undefined || !service.unit) {
-                    throw new Error(`Service ${index}: name, unit_cost, number_of_units, and unit are required`);
+                if (!service.name || service.unit_cost === undefined || !service.unit) {
+                    throw new Error(`Service ${index}: name, unit_cost, and unit are required`);
                 }
                 if (isNaN(service.unit_cost) || service.unit_cost < 0) {
-                    throw new Error(`Service ${index}: unit_cost must be a positive number`);
+                    throw new Error(`Service ${index}: unit_cost must be a non-negative number`);
                 }
-                if (isNaN(service.number_of_units) || service.number_of_units < 0) {
-                    throw new Error(`Service ${index}: number_of_units must be a positive number`);
+                if (service.number_of_units !== undefined && (isNaN(service.number_of_units) || service.number_of_units < 0)) {
+                    throw new Error(`Service ${index}: number_of_units must be a non-negative number if provided`);
                 }
             });
 
@@ -440,20 +517,88 @@ class BillController {
                 throw new Error(updateError.message);
             }
 
-            // Calculate total and create notification message
-            const totalAmount = config.services.reduce((sum, service) => {
-                return sum + (service.unit_cost * service.number_of_units);
+            // Build a human-readable services list and compute config-level total
+            const totalAmount = (config.services || []).reduce((sum, service) => {
+                return sum + (Number(service.unit_cost || 0) * Number(service.number_of_units || 0));
             }, 0);
 
-            const servicesList = config.services
-                .map(s => `${s.name}: ${s.unit_cost?.toLocaleString('vi-VN')}đ/${s.unit} × ${s.number_of_units}`)
+            const servicesList = (config.services || [])
+                .map(s => `${s.name}: ${Number(s.unit_cost || 0).toLocaleString('vi-VN')}đ/${s.unit} × ${s.number_of_units}`)
                 .join(', ');
+
+            // Generate bills for every apartment based on configuration and any resident-submitted units
+            const { data: apartments, error: aptErr } = await supabaseAdmin
+                .from('apartments')
+                .select('apt_id, owner_name')
+                .order('apt_id', { ascending: true });
+
+            if (aptErr) {
+                console.warn('Unable to retrieve apartments: ', aptErr.message);
+            }
+
+            let created = 0;
+            if (apartments && apartments.length > 0) {
+                for (const apt of apartments) {
+                    try {
+                        // fetch any existing bill data to preserve pre_debt and previously submitted units
+                        const { data: existingData, error: fetchBillErr } = await this.repo.query(apt.apt_id);
+                        let existing = null;
+                        if (!fetchBillErr && existingData && existingData.length > 0) existing = existingData[0];
+
+                        const billObj = {
+                            apt_id: apt.apt_id,
+                            owner: apt.owner_name || (existing && existing.owner) || null,
+                            pre_debt: Number(existing?.pre_debt || 0),
+                            period: config.period
+                        };
+
+                        // compute per-service amounts; if resident has submitted units (fields like <slug>_units), use them
+                        let servicesSum = 0;
+                        for (const service of (config.services || [])) {
+                            const name = (service.name || '').toString();
+                            const slug = name.toLowerCase().replace(/\s+/g, '_');
+                            const configQty = Number(service.number_of_units || 0);
+                            const unitCost = Number(service.unit_cost || 0);
+
+                            // if resident previously submitted units, prefer that
+                            const residentQty = existing && existing[`${slug}_units`] !== undefined
+                                ? Number(existing[`${slug}_units`] || 0)
+                                : configQty;
+
+                            const amount = residentQty * unitCost;
+
+                            // For common known fields (electric, water, service, vehicles) keep numeric totals
+                            if (['electric', 'water', 'service', 'vehicles'].includes(slug)) {
+                                billObj[slug] = amount;
+                            } else {
+                                billObj[`${slug}_units`] = residentQty;
+                                billObj[`${slug}_amount`] = amount;
+                            }
+
+                            servicesSum += amount;
+                        }
+
+                        billObj.total = servicesSum + Number(billObj.pre_debt || 0);
+
+                        // Upsert bill for apartment
+                        const { data: upserted, error: upsertErr } = await this.repo.upsert(billObj);
+                        if (upsertErr) {
+                            console.warn(`Failed to upsert bill for ${apt.apt_id}: ${upsertErr.message}`);
+                            continue;
+                        }
+                        created += 1;
+                    } catch (e) {
+                        console.error(`Error generating bill for ${apt.apt_id}:`, e.message || e);
+                        continue;
+                    }
+                }
+            }
 
             // Notify all clients about the bill setup
             await notifyAllClients(
                 'warning',
                 `Cấu hình hóa đơn tháng ${config.period}`,
-                `Vui lòng thanh toán hóa đơn tháng ${config.period}. Dịch vụ: ${servicesList}. Tổng tiền: ${totalAmount?.toLocaleString('vi-VN')}đ`,
+                `Vui lòng thanh toán hóa đơn tháng ${config.period}. Dịch vụ: ${servicesList}. Tổng tiền (dự kiến): ${totalAmount?.toLocaleString('vi-VN')}đ`,
                 '/payments',
                 {
                     period: config.period,
@@ -463,11 +608,257 @@ class BillController {
             );
 
             return res.status(200).json({
-                message: "Bill configuration published and all clients notified",
+                message: "Bill configuration published, bills generated and all clients notified",
                 data: updatedConfig,
                 totalAmount: totalAmount,
+                billsCreated: created,
                 clientsNotified: true
             });
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
+
+    // Residents submit their measured units for services (e.g., water, parking)
+    async submitUnits(req, res) {
+        try {
+            const { apt_id, units, period: reqPeriod } = req.body; // units: [{ name, units }]
+            const userId = req.user?.id || null;
+
+            if (!apt_id || !units || !Array.isArray(units)) {
+                throw new Error('apt_id and units array are required');
+            }
+
+            // Get latest active bill configuration
+            const { data: config, error: cfgErr } = await supabaseAdmin
+                .from('bill_configurations')
+                .select('*')
+                .eq('status', 'active')
+                .order('published_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (cfgErr || !config) {
+                throw new Error('No active bill configuration found');
+            }
+
+            // Map services by lowercased name for lookup
+            const svcMap = {};
+            (config.services || []).forEach((s) => {
+                if (!s || !s.name) return;
+                svcMap[s.name.toString().toLowerCase()] = s;
+            });
+
+            // Fetch existing bill for apt to combine totals
+            const { data: existingBills, error: fetchBillErr } = await this.repo.query(apt_id);
+            let existing = null;
+            if (!fetchBillErr && existingBills && existingBills.length > 0) existing = existingBills[0];
+
+            const updateObj = { apt_id };
+            let addedTotal = 0;
+            const details = (existing && existing.service_details) ? existing.service_details : {};
+
+            for (const u of units) {
+                const name = (u.name || '').toString();
+                const qty = Number(u.units || 0);
+                if (!name) continue;
+                const key = name.toLowerCase();
+                const svc = svcMap[key];
+                if (!svc) continue; // ignore unknown services
+
+                const amount = qty * Number(svc.unit_cost || 0);
+                // store per-service data inside service_details to avoid creating dynamic DB columns
+                details[key] = { units: qty, amount };
+                addedTotal += amount;
+
+                // also update common numeric fields when service name indicates a known type
+                if (['điện','dien','electric','electricity'].some(k => key.includes(k))) {
+                    updateObj.electric = (Number(existing?.electric) || 0) + amount;
+                } else if (['nước','nuoc','water'].some(k => key.includes(k))) {
+                    updateObj.water = (Number(existing?.water) || 0) + amount;
+                } else if (['xe','vehicle','vehicles'].some(k => key.includes(k))) {
+                    updateObj.vehicles = (Number(existing?.vehicles) || 0) + amount;
+                } else if (['vệ sinh','vesinh','ve sinh','service','services'].some(k => key.includes(k))) {
+                    updateObj.service = (Number(existing?.service) || 0) + amount;
+                }
+            }
+
+            // attach updated service details
+            updateObj.service_details = details;
+            // Attach period: prefer request-specified period, fall back to active configuration period
+            updateObj.period = reqPeriod || (config && config.period) || null;
+
+            // Compute new total: start from existing total (if any) minus any previous per-resident amounts for the same services, then add new
+            let baseTotal = 0;
+            if (existing) {
+                // sum numeric fields from existing bill that are not the per-resident *_amount fields we just set
+                for (const [k, v] of Object.entries(existing)) {
+                    if (k.endsWith('_amount') || k.endsWith('_units')) continue;
+                    if (k === 'total') continue;
+                    if (typeof v === 'number') baseTotal += v;
+                }
+            }
+
+            const newTotal = baseTotal + addedTotal;
+            updateObj.total = newTotal;
+            // Ensure apartment exists to satisfy foreign key constraint
+            const { data: aptCheck, error: aptCheckErr } = await supabaseAdmin
+                .from('apartments')
+                .select('apt_id, owner_name')
+                .eq('apt_id', apt_id)
+                .single();
+
+            if (aptCheckErr || !aptCheck) {
+                return res.status(400).json({ message: `Apartment not found: ${apt_id}` });
+            }
+
+            // Ensure owner is set (use existing bill owner or apartment.owner_name)
+            if (!updateObj.owner) updateObj.owner = (existing && existing.owner) || (aptCheck && aptCheck.owner_name) || '';
+
+            // Upsert bill record for the apartment
+            const { data: upserted, error: upsertErr } = await this.repo.upsert(updateObj);
+            if (upsertErr) throw new Error(upsertErr.message);
+
+            // Notify apartment owner that their units were recorded
+            const ownerId = await getApartmentOwnerUserId(apt_id);
+            if (ownerId) {
+                await createNotification(
+                    ownerId,
+                    'info',
+                    'Số liệu tiêu thụ đã được ghi nhận',
+                    `Số liệu tiêu thụ cho căn hộ ${apt_id} đã được cập nhật. Tổng cộng thêm: ${addedTotal?.toLocaleString('vi-VN')}đ`,
+                    '/payments',
+                    { apt_id, addedTotal }
+                );
+            }
+
+            return res.status(200).json({ message: 'Units submitted', data: upserted });
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
+
+    // Bulk submit measured units for multiple apartments
+    async submitBulk(req, res) {
+        try {
+            const { rows } = req.body; // rows: [{ apt_id, services: [{name, units}] }]
+            if (!rows || !Array.isArray(rows)) throw new Error('rows array is required');
+
+            // Get latest active bill configuration
+            const { data: config, error: cfgErr } = await supabaseAdmin
+                .from('bill_configurations')
+                .select('*')
+                .eq('status', 'active')
+                .order('published_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (cfgErr || !config) {
+                throw new Error('No active bill configuration found');
+            }
+
+            const svcMap = {};
+            (config.services || []).forEach((s) => {
+                if (!s || !s.name) return;
+                svcMap[s.name.toString().toLowerCase()] = s;
+            });
+
+            const processed = [];
+
+            for (const r of rows) {
+                const apt_id = r.apt_id || r.aptId || r.apartment || null;
+                const services = Array.isArray(r.services) ? r.services : [];
+                if (!apt_id) continue;
+
+                // fetch existing
+                const { data: existingBills, error: fetchBillErr } = await this.repo.query(apt_id);
+                let existing = null;
+                if (!fetchBillErr && existingBills && existingBills.length > 0) existing = existingBills[0];
+
+                const updateObj = { apt_id };
+                let addedTotal = 0;
+                const details = (existing && existing.service_details) ? existing.service_details : {};
+
+                for (const s of services) {
+                    const name = (s.name || '').toString();
+                    const qty = Number(s.units || 0);
+                    if (!name) continue;
+                    const key = name.toLowerCase();
+                    const cfg = svcMap[key];
+                    if (!cfg) continue;
+                    const amount = qty * Number(cfg.unit_cost || 0);
+                    // store in service_details
+                    details[key] = { units: qty, amount };
+                    addedTotal += amount;
+
+                    // also set numeric fields for common services
+                    const slug = key.replace(/\s+/g, '_');
+                    if (['điện','dien','electric','electricity'].some(k => key.includes(k))) {
+                        updateObj.electric = (Number(existing?.electric) || 0) + amount;
+                    } else if (['nước','nuoc','water'].some(k => key.includes(k))) {
+                        updateObj.water = (Number(existing?.water) || 0) + amount;
+                    } else if (['xe','vehicle','vehicles','xe'].some(k => key.includes(k))) {
+                        updateObj.vehicles = (Number(existing?.vehicles) || 0) + amount;
+                    } else if (['vệ sinh','vesinh','ve sinh','service','services'].some(k => key.includes(k))) {
+                        updateObj.service = (Number(existing?.service) || 0) + amount;
+                    }
+                }
+
+                updateObj.service_details = details;
+                // Attach period: prefer request-specified period (from bulk body), fall back to active config
+                updateObj.period = (req.body && req.body.period) || (config && config.period) || null;
+
+                // compute base total excluding per-service amounts
+                let baseTotal = 0;
+                if (existing) {
+                    for (const [k, v] of Object.entries(existing)) {
+                        if (k.endsWith('_amount') || k.endsWith('_units')) continue;
+                        if (k === 'total' || k === 'service_details') continue;
+                        if (typeof v === 'number') baseTotal += v;
+                    }
+                }
+
+                updateObj.total = baseTotal + addedTotal;
+
+                // Ensure apartment exists before attempting upsert
+                const { data: aptCheckRow, error: aptCheckRowErr } = await supabaseAdmin
+                    .from('apartments')
+                    .select('apt_id, owner_name')
+                    .eq('apt_id', apt_id)
+                    .single();
+
+                if (aptCheckRowErr || !aptCheckRow) {
+                    processed.push({ apt_id, status: 'error', message: `Apartment not found: ${apt_id}` });
+                    continue;
+                }
+
+                // Ensure owner is set for this apartment
+                if (!updateObj.owner) updateObj.owner = (existing && existing.owner) || (aptCheckRow && aptCheckRow.owner_name) || '';
+
+                const { data: upserted, error: upsertErr } = await this.repo.upsert(updateObj);
+                if (upsertErr) {
+                    // continue with next but record error
+                    processed.push({ apt_id, status: 'error', message: upsertErr.message });
+                    continue;
+                }
+
+                // notify owner
+                const ownerId = await getApartmentOwnerUserId(apt_id);
+                if (ownerId) {
+                    await createNotification(
+                        ownerId,
+                        'info',
+                        'Số liệu tiêu thụ đã được ghi nhận',
+                        `Số liệu tiêu thụ cho căn hộ ${apt_id} đã được cập nhật từ import. Tổng cộng thêm: ${addedTotal?.toLocaleString('vi-VN')}đ`,
+                        '/payments',
+                        { apt_id, addedTotal }
+                    );
+                }
+
+                processed.push({ apt_id, status: 'ok', upserted });
+            }
+
+            return res.status(200).json({ message: 'Bulk submit processed', processed });
         } catch (error) {
             return res.status(500).json({ message: error.message });
         }
@@ -527,6 +918,79 @@ class BillController {
         }
     }
 
+        // Return available billing periods from configurations and existing bills
+        async getAvailablePeriods(req, res) {
+            try {
+                const { data: cfgs, error: cfgErr } = await supabaseAdmin
+                    .from('bill_configurations')
+                    .select('period')
+                    .neq('period', null);
+
+                if (cfgErr) console.warn('Error fetching config periods:', cfgErr.message);
+
+                const { data: bills, error: billsErr } = await supabaseAdmin
+                    .from('bills')
+                    .select('period')
+                    .neq('period', null);
+
+                if (billsErr) console.warn('Error fetching bill periods:', billsErr.message);
+
+                const periods = new Set();
+                (cfgs || []).forEach(c => c && c.period && periods.add(c.period));
+                (bills || []).forEach(b => b && b.period && periods.add(b.period));
+
+                const sorted = Array.from(periods).sort().reverse();
+                return res.status(200).json({ message: 'Success', periods: sorted });
+            } catch (error) {
+                return res.status(500).json({ message: error.message });
+            }
+        }
+
+    // Export current bills as CSV (admin/manager)
+    async exportBills(req, res) {
+        try {
+            const { data: bills, error } = await supabaseAdmin
+                .from('bills')
+                .select('*, apartments(apt_id, owner_name)')
+                .order('apt_id', { ascending: true });
+
+            if (error) throw error;
+
+            const rows = bills || [];
+
+            // Build CSV headers - include common fields and any dynamic _amount/_units fields
+            const headersSet = new Set(['apt_id', 'owner_name', 'pre_debt', 'total', 'electric', 'water', 'service', 'vehicles']);
+            rows.forEach(r => {
+                Object.keys(r).forEach(k => {
+                    if (k.endsWith('_amount') || k.endsWith('_units')) headersSet.add(k);
+                });
+            });
+
+            const headers = Array.from(headersSet);
+
+            const csvLines = [];
+            csvLines.push(headers.join(','));
+
+            for (const r of rows) {
+                const values = headers.map(h => {
+                    if (h === 'owner_name') return r.apartments ? (`"${(r.apartments.owner_name || '').toString().replace(/"/g,'""')}"`) : '';
+                    const val = r[h] !== undefined ? r[h] : '';
+                    if (typeof val === 'string') return `"${val.replace(/"/g,'""')}"`;
+                    return val;
+                });
+                csvLines.push(values.join(','));
+            }
+
+            const csv = csvLines.join('\n');
+
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="bills_export_${new Date().toISOString()}.csv"`);
+            return res.status(200).send(csv);
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
+
     async updateBillConfiguration(req, res) {
         try {
             const { configId } = req.params;
@@ -552,11 +1016,14 @@ class BillController {
                 throw new Error("Can only update configurations in draft status");
             }
 
-            // Validate services if provided
+            // Validate services if provided - number_of_units is optional for price configs
             if (services && Array.isArray(services)) {
                 services.forEach((service, index) => {
-                    if (!service.name || service.unit_cost === undefined || service.number_of_units === undefined || !service.unit) {
-                        throw new Error(`Service ${index}: name, unit_cost, number_of_units, and unit are required`);
+                    if (!service.name || service.unit_cost === undefined || !service.unit) {
+                        throw new Error(`Service ${index}: name, unit_cost, and unit are required`);
+                    }
+                    if (service.number_of_units !== undefined && (isNaN(service.number_of_units) || service.number_of_units < 0)) {
+                        throw new Error(`Service ${index}: number_of_units must be a non-negative number if provided`);
                     }
                 });
             }

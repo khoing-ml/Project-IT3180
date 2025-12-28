@@ -87,6 +87,14 @@ router.post("/setup", verifyToken, requireAdminOrManager, controller.setupBills.
  */
 router.post("/publish", verifyToken, requireAdminOrManager, controller.publishBillConfiguration.bind(controller));
 
+// Residents submit measured units for configurable services (e.g., water, parking)
+router.post('/submit-units', verifyToken, controller.submitUnits.bind(controller));
+// Bulk submit measured units (CSV/Excel import -> parsed on client)
+router.post('/submit-bills', verifyToken, controller.submitBulk.bind(controller));
+
+// Export bills (CSV) - admin/manager only
+router.get('/export', verifyToken, requireAdminOrManager, controller.exportBills.bind(controller));
+
 /**
  * @swagger
  * /bills/config/{configId}:
@@ -127,6 +135,12 @@ router.get("/config/:configId", controller.getBillConfiguration.bind(controller)
  *         description: Error retrieving configurations
  */
 router.get("/configs", controller.getAllBillConfigurations.bind(controller));
+
+// Return available billing periods
+router.get("/periods", controller.getAvailablePeriods.bind(controller));
+
+// Aggregated summary per period
+router.get("/summary", controller.summary.bind(controller));
 
 /**
  * @swagger

@@ -6,4 +6,5 @@ export interface Bill {
   service: number
   vehicles: number
   pre_debt: number
+  period?: string
 }

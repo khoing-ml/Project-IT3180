@@ -29,3 +29,8 @@ pids
 # IDE
 .vscode/
 .idea/
+
+
+test/*
+database/*
+image

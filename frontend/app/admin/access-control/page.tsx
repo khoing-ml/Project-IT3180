@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { AccessCard } from "@/types/access";
 import { AlertCircle, Plus, Eye, Trash2, Edit, Lock, Unlock } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import BackButton from "@/components/BackButton";
+import Header from "@/components/Header";
 
 export default function AccessControlPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -151,13 +154,21 @@ export default function AccessControlPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Access Control</h1>
-            <p className="text-gray-600">Manage resident access cards</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <Sidebar />
+      <div className="ml-72 p-8">
+        <Header />
+        <div className="max-w-7xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton />
+          </div>
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Access Control</h1>
+              <p className="text-gray-600">Manage resident access cards</p>
           </div>
           <button
             onClick={() => {
@@ -447,6 +458,7 @@ export default function AccessControlPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

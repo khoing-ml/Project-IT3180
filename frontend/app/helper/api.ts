@@ -185,13 +185,12 @@ export class ApiCall {
 
     async query_bill_with_filter(filter, page_number, page_size) {
          try {
-            const res = await axios.get("http://localhost:3001/api/bills/query-with-filter", {      
-                params: {
-                    page_number,
-                    page_size,
-                    filter
-                }
-            });
+            const params = {
+                page_number,
+                page_size,
+                filter: typeof filter === 'object' ? JSON.stringify(filter) : filter
+            };
+            const res = await axios.get("http://localhost:3001/api/bills/query-with-filter", { params });
             console.log(res.data.result);
             return res.data.result;
 
@@ -201,12 +200,13 @@ export class ApiCall {
         }
     }
 
-    async reset_bill(apt_id) {
+    async reset_bill(apt_id, period = null) {
          try {
-            const res = await axios.patch("http://localhost:3001/api/bills/reset", {      
-                apt_id,
-            });
+            const payload: any = { apt_id };
+            if (period) payload.period = period;
+            const res = await axios.patch("http://localhost:3001/api/bills/reset", payload);
             console.log("Response:", res.data);
+            return res.data;
         } catch (err) {
             console.log(err);
             throw new Error(err.message);

@@ -113,13 +113,13 @@ export default function NotificationPanel() {
       {/* Notification Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 hover:bg-slate-800 rounded-xl transition-all group"
+        className="relative p-2.5 hover:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-all group"
       >
         <Bell
           className={`w-5 h-5 transition-colors ${
             unreadCount > 0
               ? "text-blue-400 group-hover:text-blue-300"
-              : "text-slate-300 group-hover:text-blue-400"
+              : "text-slate-300 dark:text-slate-400 group-hover:text-blue-400"
           }`}
         />
         {unreadCount > 0 && (
@@ -131,14 +131,14 @@ export default function NotificationPanel() {
 
       {/* Notification Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 max-h-[600px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-96 max-h-[600px] bg-slate-900 dark:bg-slate-950 border border-slate-700 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50">
           {/* Header */}
-          <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 z-10">
+          <div className="sticky top-0 bg-slate-900 dark:bg-slate-950 border-b border-slate-700 dark:border-slate-800 p-4 z-10">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-slate-200">Thông báo</h3>
+              <h3 className="text-lg font-semibold text-slate-200 dark:text-slate-300">Thông báo</h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-slate-800 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 <X className="w-4 h-4 text-slate-400" />
               </button>
@@ -159,15 +159,15 @@ export default function NotificationPanel() {
             {isLoading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-2 text-sm text-slate-400">Đang tải...</p>
+                <p className="mt-2 text-sm text-slate-400 dark:text-slate-500">Đang tải...</p>
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center">
-                <Bell className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">Không có thông báo nào</p>
+                <Bell className="w-12 h-12 text-slate-600 dark:text-slate-700 mx-auto mb-3" />
+                <p className="text-slate-400 dark:text-slate-500">Không có thông báo nào</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800">
+              <div className="divide-y divide-slate-800 dark:divide-slate-700">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
@@ -175,7 +175,7 @@ export default function NotificationPanel() {
                     className={`p-4 transition-all cursor-pointer ${
                       !notification.read
                         ? "bg-blue-500/5 hover:bg-blue-500/10"
-                        : "hover:bg-slate-800/50"
+                        : "hover:bg-slate-800/50 dark:hover:bg-slate-800/30"
                     } ${notification.link ? "cursor-pointer" : ""}`}
                   >
                     <div className="flex gap-3">
@@ -193,7 +193,7 @@ export default function NotificationPanel() {
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <h4
                             className={`text-sm font-semibold ${
-                              !notification.read ? "text-slate-100" : "text-slate-300"
+                              !notification.read ? "text-slate-100 dark:text-slate-200" : "text-slate-300 dark:text-slate-400"
                             }`}
                           >
                             {notification.title}
@@ -202,29 +202,29 @@ export default function NotificationPanel() {
                             <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mb-2 line-clamp-2">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 line-clamp-2">
                           {notification.message}
                         </p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-slate-500 dark:text-slate-600">
                             {formatTime(notification.createdAt)}
                           </span>
                           <div className="flex gap-1">
                             {!notification.read && (
                               <button
                                 onClick={(e) => handleMarkAsRead(e, notification.id)}
-                                className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+                                className="p-1.5 hover:bg-slate-700 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                 title="Đánh dấu đã đọc"
                               >
-                                <Check className="w-3.5 h-3.5 text-slate-400 hover:text-green-400" />
+                                <Check className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hover:text-green-400" />
                               </button>
                             )}
                             <button
                               onClick={(e) => handleDelete(e, notification.id)}
-                              className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+                              className="p-1.5 hover:bg-slate-700 dark:hover:bg-slate-800 rounded-lg transition-colors"
                               title="Xóa"
                             >
-                              <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-400" />
+                              <Trash2 className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hover:text-red-400" />
                             </button>
                           </div>
                         </div>

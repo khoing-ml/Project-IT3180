@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Visitor } from "@/types/access";
 import { AlertCircle, CheckCircle, XCircle, Clock, Plus, Eye, Trash2 } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import BackButton from "@/components/BackButton";
+import Header from "@/components/Header";
 
 export default function VisitorsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -108,15 +111,23 @@ export default function VisitorsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Visitor Management</h1>
-            <p className="text-gray-600">Manage and approve visitor requests</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <Sidebar />
+      <div className="ml-72 p-8">
+        <Header />
+        <div className="max-w-7xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton />
           </div>
-        </div>
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Visitor Management</h1>
+              <p className="text-gray-600">Manage and approve visitor requests</p>
+            </div>
+          </div>
 
         {/* Error Message */}
         {error && (
@@ -302,6 +313,7 @@ export default function VisitorsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

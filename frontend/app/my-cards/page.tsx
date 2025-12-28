@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { AccessCard } from "@/types/access";
 import { AlertCircle, Eye, AlertTriangle } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import BackButton from "@/components/BackButton";
+import Header from "@/components/Header";
 
 export default function MyCardsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -87,13 +90,21 @@ export default function MyCardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Access Cards</h1>
-          <p className="text-gray-600">View and manage your access cards</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <Sidebar />
+      <div className="ml-72 p-8">
+        <Header />
+        <div className="max-w-7xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton />
+          </div>
+          
+          {/* Header */}
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">My Access Cards</h1>
+            <p className="text-gray-600">View and manage your access cards</p>
+          </div>
 
         {/* Error Message */}
         {error && (
@@ -257,7 +268,8 @@ export default function MyCardsPage() {
               </div>
             </div>
           </div>
-        )}
+        )}  
+        </div>
       </div>
     </div>
   );

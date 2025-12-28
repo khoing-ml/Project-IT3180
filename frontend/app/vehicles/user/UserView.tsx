@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Plus, Car, Bike } from "lucide-react"
 import { AppHeader } from "../components/app-header"
 import Header from "../../../components/Header";
+import Sidebar from "../../../components/Sidebar";
+import BackButton from "../../../components/BackButton";
 import { vehicle_type } from "../../helper/type";
 import {ApiCall} from "../../helper/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -196,10 +198,15 @@ export default function UserVehiclePage() {
 
  return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Sidebar />
+      <div className="ml-72">
+        <Header />
 
-      <main className="container mx-auto px-6 py-8 space-y-6">
-        {/* Stats cards */}
+        <main className="container mx-auto px-6 py-8 space-y-6">
+          {/* Back Button */}
+          <BackButton />
+          
+          {/* Stats cards */}
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="border-0 text-white p-6 rounded-2xl relative overflow-hidden bg-gradient-to-br from-[#0066FF] to-[#0052CC]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-8 -mt-8" />
@@ -449,6 +456,7 @@ export default function UserVehiclePage() {
           )}
         </div>
       </main>
+      </div>
     </div>
   )
 }

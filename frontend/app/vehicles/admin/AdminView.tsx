@@ -8,6 +8,7 @@ import { SearchTab } from "../components/vehicles/search-tab"
 import { AppHeader } from "../components/app-header"
 import Header from "../../../components/Header";
 import Sidebar from "../../../components/Sidebar";
+import BackButton from "../../../components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserRole } from "@/types/auth";
 import { Card } from "../components/ui/card";
@@ -59,10 +60,15 @@ export default function AdminVehiclePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <main className="container mx-auto px-6 py-8 space-y-8">
-         {/* Stats cards */}
+      <Sidebar />
+      <div className="ml-72">
+        <Header />
+        
+        <main className="container mx-auto px-6 py-8 space-y-8">
+          {/* Back Button */}
+          <BackButton />
+          
+          {/* Stats cards */}
         <div className="grid md:grid-cols-3 gap-6">
         <Card className="border-0 text-white p-6 rounded-2xl relative overflow-hidden bg-gradient-to-br from-[#0066FF] to-[#0052CC]">
           {/* Background circle */}
@@ -135,6 +141,7 @@ export default function AdminVehiclePage() {
           </Tabs>
         </div>
       </main>
+      </div>
     </div>
   )
 }

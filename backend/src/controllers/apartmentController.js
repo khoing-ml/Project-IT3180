@@ -80,14 +80,21 @@ exports.update = async (req, res) => {
   }
 };
 
+const residentService = require('../repositories/residentService');
+
 exports.delete = async (req, res) => {
   try {
     const { apt_id } = req.params;
+    if (!apt_id) throw new Error('Missing apt_id');
+
+    // Prevent deleting apartment when it has residents
+    const cnt = await residentService.countByApartment(apt_id);
+    if (cnt && cnt > 0) {
+      return res.status(400).json({ success: false, message: 'Không được phép xóa căn hộ khi đang có người ở' });
+    }
+
     await apartmentService.deleteApartment(apt_id);
-    res.status(200).json({
-      success: true,
-      message: 'Xóa hộ dân thành công',
-    });
+    res.status(200).json({ success: true, message: 'Xóa hộ dân thành công' });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

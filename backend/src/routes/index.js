@@ -10,6 +10,7 @@ const visitorRoutes = require('./visitorRoutes');
 const accessCardRoutes = require('./accessCardRoutes');
 const activityLogRoutes = require('./activityLogRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const residentRoutes = require('./residentRoutes');
 
 /**
  * @swagger
@@ -76,6 +77,7 @@ router.use('/payments', paymentRoutes);
 router.use('/visitors', visitorRoutes);
 router.use('/access-cards', accessCardRoutes);
 router.use('/activity-logs', activityLogRoutes);
+router.use('/residents', residentRoutes);
 
 /**
  * @swagger

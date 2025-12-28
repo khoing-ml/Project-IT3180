@@ -15,27 +15,43 @@ class BillRepository {
         update_field,
         apt_id
     ) {
-        const res = await supabaseAdmin
-        .from('bills')
-        .update(update_field)
-        .eq('apt_id', apt_id)
-        .select();
+        // support calling update with either:
+        // update_field = { ...fields, period? } and apt_id = 'A1'
+        // or apt_id = { apt_id: 'A1', period: '2025-07' } for explicit targeting
+        let period = null;
+        if (update_field && update_field.period) period = update_field.period;
+        let query = supabaseAdmin.from('bills').update(update_field);
+
+        if (apt_id && typeof apt_id === 'object') {
+            if (apt_id.apt_id) query = query.eq('apt_id', apt_id.apt_id);
+            if (apt_id.period) query = query.eq('period', apt_id.period);
+        } else {
+            query = query.eq('apt_id', apt_id);
+            if (period) query = query.eq('period', period);
+        }
+
+        const res = await query.select();
         return res;
     }
 
     async upsert(bill) {
+        // Upsert should consider period as part of the uniqueness key so the same apartment
+        // can have bills for multiple periods. Ensure callers include `period` on the bill.
+        const onConflict = Array.isArray(bill) ? ['apt_id','period'] : ['apt_id','period'];
         const res = await supabaseAdmin
         .from('bills')
-        .upsert(bill, {onConflict: "apt_id"})
+        .upsert(bill, { onConflict })
         .select();
         return res;
     }
 
     async query(apt_id) {
+        // Return bills for the apartment ordered by period desc (most recent first)
         const res = await supabaseAdmin
         .from('bills')
         .select('*')
         .eq('apt_id', apt_id)
+        .order('period', { ascending: false });
         return res;
     }
 
@@ -113,10 +129,21 @@ class BillRepository {
     }
 
     async accrue_fee(apt_id, total) {
+        // Record a payment entry in the `payments` table. `period` should be provided by caller
+        // If caller wants to aggregate totals, use DB-side RPC or a separate aggregation table.
+        const payload = typeof total === 'object' && total !== null ? total : { apt_id, amount: total };
         let res = await supabaseAdmin
-        .from('billsCollected')
-        .upsert({'apt_id': apt_id, 'total': total})
+        .from('payments')
+        .insert(payload)
         .select();
+        return res;
+    }
+
+    async findPayments(apt_id, period) {
+        const query = supabaseAdmin.from('payments').select('*');
+        if (apt_id) query.eq('apt_id', apt_id);
+        if (period) query.eq('period', period);
+        const res = await query;
         return res;
     }
 }

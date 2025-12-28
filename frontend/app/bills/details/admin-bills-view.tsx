@@ -9,6 +9,10 @@ import { BillDetailDialog } from "./bill-detail-dialog"
 import { EditBillDialog } from "./edit-bill-dialog"
 import type { Bill } from "../types"
 import Header from "../../../components/Header";
+import Sidebar from "../../../components/Sidebar";
+import BackButton from "../../../components/BackButton";
+import SubmitBillsModal from "../../../components/SubmitBillsModal";
+import { billsAPI } from '@/lib/api';
 import { Input } from "../components/ui/input";
 import { ApiCall } from "@/app/helper/api";
 
@@ -37,6 +41,8 @@ const mockAdminBills: Bill[] = Array.from({ length: 25 }, (_, i) => ({
 export function AdminBillsView() {
   const api = new ApiCall();
 
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -52,6 +58,8 @@ export function AdminBillsView() {
 
   const [searchApartment, setSearchApartment] = useState("");
   const [searchOwner, setSearchOwner] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState<string | null>(null);
+  const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
 
   const filteredBills = mockAdminBills.filter((bill) => {
     const matchApartment = bill.apt_id.toLowerCase().includes(searchApartment.toLowerCase())
@@ -65,19 +73,41 @@ export function AdminBillsView() {
     let filter: any = {};
     if(searchApartment) filter.apt_id = searchApartment;
     if(searchOwner) filter.owner = searchOwner;
+    if(filterPeriod) filter.period = filterPeriod;
     setLoadingBills(true);
     setErrorFetchBills(null);
     try {
       const res = await api.query_bill_with_filter(filter, currentPage, itemsPerPage);
       const bills = res.data;
-      let total = 0;
-      for(const bill of bills) {
-        total = total + bill.electric + bill.water + bill.pre_debt + bill.vehicles + bill.service;
+      // If a period filter is active, rely on server summary for totals (accurate across all apartments)
+      if (filterPeriod) {
+        try {
+          const summary = await billsAPI.getPeriodSummary(filterPeriod);
+          setTotalToCollect(Number(summary.total_due || 0));
+          setTotalCollected(Number(summary.total_received || 0));
+        } catch (e) {
+          console.warn('Failed to fetch period summary', e);
+          // fallback: compute totals from current page only
+          let total = 0;
+          for(const bill of bills) {
+            total = total + Number(bill.electric || 0) + Number(bill.water || 0) + Number(bill.pre_debt || 0) + Number(bill.vehicles || 0) + Number(bill.service || 0);
+          }
+          setTotalToCollect(total);
+        }
+      } else {
+        // No period selected: compute totals from current page (or set 0)
+        let total = 0;
+        for(const bill of bills) {
+          total = total + Number(bill.electric || 0) + Number(bill.water || 0) + Number(bill.pre_debt || 0) + Number(bill.vehicles || 0) + Number(bill.service || 0);
+        }
+        setTotalToCollect(total);
+        try {
+          const collected = await api.get_total_collected();
+          setTotalCollected(collected)
+        } catch (e) {
+          console.warn('Failed to fetch overall collected', e);
+        }
       }
-      const collected = await api.get_total_collected();
-      console.log("collect: ", collected);
-      setTotalCollected(collected)
-      setTotalToCollect(total);
       setCurrentBills(bills);
       setTotalPages(res.total_pages);
     }
@@ -93,7 +123,20 @@ export function AdminBillsView() {
 
   useEffect(() => {
     fetchBills();
-  }, [currentPage, totalPages, searchApartment, searchOwner, totalCollected, totalToCollect]);
+  }, [currentPage, totalPages, searchApartment, searchOwner, totalCollected, totalToCollect, filterPeriod]);
+
+  // load available periods
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await billsAPI.getAvailablePeriods();
+        const periods = resp?.periods || [];
+        setAvailablePeriods(periods);
+      } catch (e) {
+        console.error('Failed to load periods', e);
+      }
+    })();
+  }, []);
 
   const handleViewDetail = (bill: Bill) => {
     setSelectedBill(bill)
@@ -107,25 +150,16 @@ export function AdminBillsView() {
 
   const handleResetBill = async(bill: Bill) => {
     try {
-      await api.collect_bill(bill.apt_id, bill.electric + bill.water + bill.service + bill.vehicles + bill.pre_debt);
-      await api.reset_bill(bill.apt_id);
-      //setTotalCollected(bill.electric + bill.water + bill.service + bill.vehicles + bill.pre_debt);
-      const resetBill: Bill = {
-        ...bill,
-        electric: 0,
-        water: 0,
-        service: 0,
-        vehicles: 0,
-        pre_debt: 0,
-      }
-      setSelectedBill(resetBill)
+      // Mark bill as paid (backend records payment and updates totals)
+      await api.reset_bill(bill.apt_id, bill.period);
+      // Refresh list and aggregates
       await fetchBills();
     }
     catch(error) {
       console.log(error.message);
     }
 
-    alert(`Đã reset hóa đơn cho căn hộ ${bill.apt_id}`)
+    alert(`Đã đánh dấu là 'Đã thu' cho căn hộ ${bill.apt_id} (kỳ ${bill.period || '-'})`)
   }
 
   const handleSaveEdit = async(updatedBill: Bill) => {
@@ -152,10 +186,32 @@ export function AdminBillsView() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-6">
-          <Header />
-          <div className="mx-auto max-w-7xl space-y-6">
-    <div className="space-y-6">
+    <div className="min-h-screen bg-white">
+      <Sidebar />
+      <div className="ml-72 p-6">
+        <Header />
+        <div className="mx-auto max-w-7xl space-y-6">
+          {/* Back Button */}
+          <div className="flex items-center justify-between">
+            <BackButton />
+            <div className="flex items-center gap-3">
+              <a
+                href="/admin/bills-setup"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex items-center gap-2"
+              >
+                ⚙️ Cấu hình giá dịch vụ
+              </a>
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2"
+              >
+                🚰 Gửi số liệu
+              </button>
+            </div>
+            <SubmitBillsModal isOpen={showSubmitModal} onClose={() => setShowSubmitModal(false)} period={filterPeriod} />
+          </div>
+          
+          <div className="space-y-6">
     
       {/* Overview Cards */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -187,7 +243,7 @@ export function AdminBillsView() {
       <Card className="border border-gray-200 bg-white shadow-sm">
         <CardHeader>
           <CardTitle className="text-gray-900">Danh sách hóa đơn các căn hộ</CardTitle>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
               <Input
@@ -212,23 +268,51 @@ export function AdminBillsView() {
                 className="pl-9 text-gray-600"
               />
             </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-700">Chọn kỳ:</label>
+                <select
+                  value={filterPeriod ?? ''}
+                  onChange={(e) => { setFilterPeriod(e.target.value || null); setCurrentPage(1); }}
+                  className="px-3 py-2 border border-gray-300 rounded text-gray-900"
+                >
+                  <option value="">-- Chọn kỳ --</option>
+                  {availablePeriods.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                {filterPeriod && (
+                  <button className="ml-2 px-3 py-2 text-sm bg-gray-200 rounded" onClick={() => setFilterPeriod(null)}>
+                    Xóa
+                  </button>
+                )}
+              </div>
           </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50">
-                <TableHead className="font-semibold text-gray-700">Căn hộ</TableHead>
-                <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
-                <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
-                <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Căn hộ</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Trạng thái</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Kỳ</TableHead>
+                  <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
+                  <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentBills.map((bill) => (
-                <TableRow key={bill.apt_id} className="border-b border-gray-200 bg-white hover:bg-gray-50">
+                <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-200 bg-white hover:bg-gray-50">
                   <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
                   <TableCell className="text-gray-900">{bill.owner}</TableCell>
+                  <TableCell className="text-sm">
+                    {bill.paid ? (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">Đã thu</span>
+                    ) : (
+                      <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">Chưa thu</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-gray-700 text-sm">{bill.period ?? '-'}</TableCell>
                   <TableCell className="text-right font-semibold text-gray-900">
                     {formatCurrency(bill.electric + bill.pre_debt + bill.water + bill.service + bill.vehicles)}
                   </TableCell>
@@ -291,6 +375,7 @@ export function AdminBillsView() {
       />
     </div>
           </div>
+      </div>
     </div>
   )
 }

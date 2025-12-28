@@ -3,6 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import Sidebar from "@/components/Sidebar";
+import BackButton from "@/components/BackButton";
+import Header from "@/components/Header";
 import {
   ArrowLeft,
   Building2,
@@ -103,26 +106,34 @@ export default function BuildingInfoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <div>
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center gap-1">
-              <ArrowLeft className="w-4 h-4" /> Quay lại
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800">Thông tin Chung cư</h1>
-            <p className="text-gray-600 mt-1">Quản lý thông tin và quy định chung cư</p>
+      <Sidebar />
+      <div className="ml-72">
+        <Header />
+        
+        {/* Content */}
+        <div className="p-6">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton />
           </div>
-          <button
-            onClick={() => setEditMode(!editMode)}
-            className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-6 rounded-lg transition flex items-center gap-2"
-          >
-            <Edit2 className="w-5 h-5" /> Chỉnh sửa
-          </button>
-        </div>
-      </div>
+          
+          {/* Header */}
+          <div className="bg-white shadow-lg rounded-lg">
+            <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">Thông tin Chung cư</h1>
+                <p className="text-gray-600 mt-1">Quản lý thông tin và quy định chung cư</p>
+              </div>
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-6 rounded-lg transition flex items-center gap-2"
+              >
+                <Edit2 className="w-5 h-5" /> Chỉnh sửa
+              </button>
+            </div>
+          </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Thông tin chung cư */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Thông tin Chung cư</h2>
@@ -329,6 +340,8 @@ export default function BuildingInfoPage() {
             ))}
           </div>
         </div>
+        </div>
+      </div>
       </div>
     </div>
   );

@@ -7,20 +7,13 @@ import {
   Inbox, 
   List, 
   Archive,
-  DollarSign,
-  Calendar,
-  ClipboardList,
-  Users,
-  Receipt,
-  BarChart3,
-  UsersRound,
-  Table,
   ChevronRight,
   Shield,
   UserCheck,
   Key,
   Activity,
-  Building2
+  Building2,
+  BarChart3
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,16 +35,7 @@ export default function Sidebar() {
     { icon: Archive, label: "Product Stock", active: false, path: "/stock" },
   ];
 
-  const pageItems = [
-    { icon: DollarSign, label: "Pricing", active: false, path: "/pricing" },
-    { icon: Calendar, label: "Calendar", active: false, path: "/calendar" },
-    { icon: ClipboardList, label: "To-Do", active: false, path: "/todo" },
-    { icon: Users, label: "Contact", active: false, path: "/contact" },
-    { icon: Receipt, label: "Invoice", active: false, path: "/invoice" },
-    { icon: BarChart3, label: "UI Elements", active: false, path: "/ui" },
-    { icon: UsersRound, label: "Team", active: false, path: "/team" },
-    { icon: Table, label: "Table", active: false, path: "/table" },
-  ];
+
 
   return (
     <aside className="fixed left-4 top-4 bottom-4 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 rounded-2xl overflow-y-auto shadow-2xl z-50 border border-slate-700/50">
@@ -148,6 +132,25 @@ export default function Sidebar() {
                 )}
               </Link>
 
+              {/* Resident Management */}
+              <Link
+                href="/admin/residents"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                  pathname === '/admin/residents'
+                    ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                {pathname === '/admin/residents' && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-400 rounded-r-full"></div>
+                )}
+                <UserCheck className={`w-5 h-5 ${pathname === '/admin/residents' ? 'text-white' : 'text-slate-400 group-hover:text-red-400'} transition-colors`} />
+                <span className="text-sm font-medium flex-1 text-left">Quản lý cư dân</span>
+                {pathname === '/admin/residents' && (
+                  <ChevronRight className="w-4 h-4 opacity-70" />
+                )}
+              </Link>
+
               {/* Access Control */}
               <Link
                 href="/admin/access-control"
@@ -235,41 +238,6 @@ export default function Sidebar() {
                 <ChevronRight className="w-4 h-4 opacity-70" />
               )}
             </Link>
-          </div>
-
-          {/* Pages Section */}
-          <div className="pt-4">
-            <div className="flex items-center gap-2 px-4 pb-3">
-              <div className="h-px flex-1 bg-slate-700"></div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Pages
-              </p>
-              <div className="h-px flex-1 bg-slate-700"></div>
-            </div>
-
-            {pageItems.map((item, index) => {
-              const isActive = pathname === item.path;
-              return (
-                <Link
-                  key={index}
-                  href={item.path}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
-                    isActive
-                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
-                  )}
-                  <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
-                  <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                  {isActive && (
-                    <ChevronRight className="w-4 h-4 opacity-70" />
-                  )}
-                </Link>
-              );
-            })}
           </div>
         </nav>
       </div>

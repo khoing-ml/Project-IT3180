@@ -8,6 +8,10 @@ import { Receipt, AlertCircle } from "lucide-react"
 import { BillDetailDialog } from "./bill-detail-dialog"
 import type { Bill } from "../types";
 import Header from "../../../components/Header";
+import Sidebar from "../../../components/Sidebar";
+import BackButton from "../../../components/BackButton";
+import SubmitBillsModal from "../../../components/SubmitBillsModal";
+import { billsAPI } from '@/lib/api';
 import { ApiCall } from "@/app/helper/api"
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -26,6 +30,9 @@ const getCurrentDate = () => {
 export function UserBillsView() {
   const api = new ApiCall();
   const { user } = useAuth();
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [filterPeriod, setFilterPeriod] = useState<string | null>(null);
+  const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
 
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -44,7 +51,14 @@ export function UserBillsView() {
     setLoadingBills(true);
     setErrorFetchBills(null);
     try {
-      const res = await api.query_all_bill(user?.username, itemsPerPage, currentPage);
+      let res: any;
+      if (filterPeriod) {
+        const filter = { owner: user?.username, period: filterPeriod };
+        res = await api.query_bill_with_filter(filter, currentPage, itemsPerPage);
+      } else {
+        // don't load bills if no period selected
+        return setCurrentBill([]), setTotalPages(0), setTotalDebt(0);
+      }
       const bills = res.data;
       let total = 0;
       for(const bill of bills) {
@@ -64,7 +78,20 @@ export function UserBillsView() {
 
   useEffect(() => {
     fetchAllBills();
-  },[user, currentPage, totalPages, totalDebt])
+  },[user, currentPage, totalPages, totalDebt, filterPeriod])
+
+  // load available periods from configurations
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await billsAPI.getAvailablePeriods();
+        const periods = resp?.periods || [];
+        setAvailablePeriods(periods);
+      } catch (e) {
+        console.error('Failed to load periods', e);
+      }
+    })();
+  }, []);
 
   const handleViewDetail = (bill: Bill) => {
     setSelectedBill(bill)
@@ -72,10 +99,42 @@ export function UserBillsView() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      <Header />
-    <div className="mx-auto max-w-7xl space-y-6">
-    <div className="space-y-6">
+    <div className="min-h-screen bg-white">
+      <Sidebar />
+      <div className="ml-72 p-6">
+        <Header />
+        <div className="mx-auto max-w-7xl space-y-6">
+          {/* Back Button */}
+          <div className="flex items-center justify-between">
+            <BackButton />
+            <button
+              onClick={() => setShowSubmitModal(true)}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+            >
+              🚰 Gửi số liệu
+            </button>
+          </div>
+          <SubmitBillsModal isOpen={showSubmitModal} onClose={() => setShowSubmitModal(false)} period={filterPeriod} />
+          
+          <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-4">
+            <label className="text-sm text-gray-700 mr-2">Chọn kỳ:</label>
+            <select
+              value={filterPeriod ?? ''}
+              onChange={(e) => { setFilterPeriod(e.target.value || null); setCurrentPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded text-gray-900"
+            >
+              <option value="">-- Chọn kỳ --</option>
+              {availablePeriods.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            {filterPeriod && (
+              <button className="ml-2 px-3 py-2 text-sm bg-gray-200 rounded" onClick={() => setFilterPeriod(null)}>
+                Xóa
+              </button>
+            )}
+          </div>
       
       {/* Overview Card */}
       <div className="grid gap-6 md:grid-cols-1">
@@ -105,20 +164,22 @@ export function UserBillsView() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50">
-                <TableHead className="font-semibold text-gray-700">Căn hộ</TableHead>
-                <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
-                <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
-                <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Căn hộ</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Kỳ</TableHead>
+                  <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
+                  <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentBills.map((bill) => (
-                <TableRow key={bill.apt_id} className="border-b border-gray-200 bg-white hover:bg-gray-50">
-                  <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
-                  <TableCell className="text-gray-900">{bill.owner}</TableCell>
-                  <TableCell className="text-right font-semibold text-gray-900">
-                    {formatCurrency(bill.water + bill.electric + bill.pre_debt + bill.service + bill.vehicles)}
-                  </TableCell>
+                <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-200 bg-white hover:bg-gray-50">
+                    <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
+                    <TableCell className="text-gray-900">{bill.owner}</TableCell>
+                    <TableCell className="text-gray-700 text-sm">{bill.period ?? '-'}</TableCell>
+                    <TableCell className="text-right font-semibold text-gray-900">
+                      {formatCurrency(bill.water + bill.electric + bill.pre_debt + bill.service + bill.vehicles)}
+                    </TableCell>
                   <TableCell className="text-center">
                     <Button variant="outline" size="sm" onClick={() => handleViewDetail(bill)}>
                       Xem chi tiết
@@ -158,6 +219,7 @@ export function UserBillsView() {
 
       {/* Bill Detail Dialog */}
       <BillDetailDialog bill={selectedBill} isOpen={isDetailOpen} onOpenChange={setIsDetailOpen} viewMode="user" />
+    </div>
     </div>
     </div>
   </div>

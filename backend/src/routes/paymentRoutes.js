@@ -68,19 +68,33 @@ router.get('/income-by-floor', getIncomeByFloor);
  *             schema:
  *               type: object
  *               properties:
- *                 success: { type: boolean }
- *                 message: { type: string }
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       floor: { type: integer, nullable: true }
- *                       display: { type: string, example: "Tầng 5" }
- *                       total_paid: { type: number, description: "Tổng đã thu từ trước đến nay" }
- *                       total_due_current: { type: number, description: "Tổng phải thu kỳ hiện tại (mới + nợ cũ)" }
- *                       current_pre_debt: { type: number, description: "Tổng nợ cũ mang sang (pre_debt)" }
- *                       collection_rate: { type: string, example: "85.50%" }
+ *                       floor:
+ *                         type: integer
+ *                         nullable: true
+ *                       display:
+ *                         type: string
+ *                         example: "Tầng 5"
+ *                       total_paid:
+ *                         type: number
+ *                         description: "Tổng đã thu từ trước đến nay"
+ *                       total_due_current:
+ *                         type: number
+ *                         description: "Tổng phải thu kỳ hiện tại (mới + nợ cũ)"
+ *                       current_pre_debt:
+ *                         type: number
+ *                         description: "Tổng nợ cũ mang sang (pre_debt)"
+ *                       collection_rate:
+ *                         type: string
+ *                         example: "85.50%"
  */
 router.get('/financial-by-floor', getFinancialByFloor);
 
@@ -93,10 +107,14 @@ router.get('/financial-by-floor', getFinancialByFloor);
  *     parameters:
  *       - in: query
  *         name: page
- *         schema: { type: integer, default: 1 }
+ *         schema:
+ *           type: integer
+ *           default: 1
  *       - in: query
  *         name: page_size
- *         schema: { type: integer, default: 20 }
+ *         schema:
+ *           type: integer
+ *           default: 20
  *     responses:
  *       200:
  *         description: Danh sách căn hộ có nợ, sắp xếp giảm dần theo số tiền nợ
@@ -116,8 +134,7 @@ router.get('/debt-apartments', getApartmentsInDebt);
  *         required: true
  *         schema:
  *           type: string
- *         description: Mã căn hộ (ví dụ: A101)
- *
+ *         description: "Mã căn hộ (ví dụ: A101)"
  *     responses:
  *       200:
  *         description: Thông tin hóa đơn hiện tại và lịch sử thanh toán
@@ -137,22 +154,22 @@ router.get('/debt-apartments', getApartmentsInDebt);
  *                       type: string
  *                     new_charges_current:
  *                       type: number
- *                       description: Các khoản phát sinh mới kỳ này
+ *                       description: "Các khoản phát sinh mới kỳ này"
  *                     pre_debt:
  *                       type: number
- *                       description: Nợ cũ mang sang
+ *                       description: "Nợ cũ mang sang"
  *                     total_due_current:
  *                       type: number
- *                       description: Tổng phải trả kỳ hiện tại
+ *                       description: "Tổng phải trả kỳ hiện tại"
  *                     total_paid_all_time:
  *                       type: number
- *                       description: Tổng đã thanh toán từ trước đến nay
+ *                       description: "Tổng đã thanh toán từ trước đến nay"
  *                     current_remaining_debt:
  *                       type: number
- *                       description: Nợ còn lại sau khi trừ tiền đã trả
+ *                       description: "Nợ còn lại sau khi trừ tiền đã trả"
  *                     payments:
  *                       type: array
- *                       description: Lịch sử các lần thanh toán
+ *                       description: "Lịch sử các lần thanh toán"
  *                       items:
  *                         type: object
  */
@@ -175,17 +192,30 @@ router.get(
  *             schema:
  *               type: object
  *               properties:
- *                 success: { type: boolean }
- *                 message: { type: string }
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  *                 data:
  *                   type: object
  *                   properties:
- *                     total_income: { type: number, description: "Tổng tiền đã thu từ trước đến nay" }
- *                     total_due_current: { type: number, description: "Tổng phải thu kỳ hiện tại (bao gồm nợ cũ)" }
- *                     total_pre_debt: { type: number, description: "Tổng nợ cũ toàn tòa" }
- *                     apartments_in_debt: { type: integer, description: "Số căn hộ đang có nợ" }
- *                     total_apartments: { type: integer }
- *                     debt_ratio: { type: string, example: "12.50%" }
+ *                     total_income:
+ *                       type: number
+ *                       description: "Tổng tiền đã thu từ trước đến nay"
+ *                     total_due_current:
+ *                       type: number
+ *                       description: "Tổng phải thu kỳ hiện tại (bao gồm nợ cũ)"
+ *                     total_pre_debt:
+ *                       type: number
+ *                       description: "Tổng nợ cũ toàn tòa"
+ *                     apartments_in_debt:
+ *                       type: integer
+ *                       description: "Số căn hộ đang có nợ"
+ *                     total_apartments:
+ *                       type: integer
+ *                     debt_ratio:
+ *                       type: string
+ *                       example: "12.50%"
  */
 router.get('/building-summary', getBuildingFinancialSummary);
 
