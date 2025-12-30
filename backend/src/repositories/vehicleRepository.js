@@ -30,7 +30,7 @@ class VehicleRepository {
     async query_with_filter(filter, start, end) {
         let res = supabaseAdmin
         .from('vehicles')
-        .select('*');
+        .select('*') ;
 
         if(filter)
         Object.entries(filter).forEach(([key, value]) => {
