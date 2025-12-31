@@ -99,9 +99,9 @@ export function UserBillsView() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Sidebar />
-      <div className="ml-72 p-6">
+      <div className="ml-4 lg:ml-72 p-6 relative z-30 text-slate-100">
         <Header />
         <div className="mx-auto max-w-7xl space-y-6">
           {/* Back Button */}
@@ -117,12 +117,12 @@ export function UserBillsView() {
           <SubmitBillsModal isOpen={showSubmitModal} onClose={() => setShowSubmitModal(false)} period={filterPeriod} />
           
           <div className="space-y-6">
-          <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm text-gray-700 mr-2">Chọn kỳ:</label>
+            <div className="flex items-center gap-3 mb-4">
+            <label className="text-sm text-slate-300 mr-2">Chọn kỳ:</label>
             <select
               value={filterPeriod ?? ''}
               onChange={(e) => { setFilterPeriod(e.target.value || null); setCurrentPage(1); }}
-              className="px-3 py-2 border border-gray-300 rounded text-gray-900"
+              className="px-3 py-2 border border-gray-300 rounded text-gray-900 dark:text-white dark:bg-gray-700"
             >
               <option value="">-- Chọn kỳ --</option>
               {availablePeriods.map(p => (
@@ -156,28 +156,28 @@ export function UserBillsView() {
       </div>
 
       {/* Bills Table */}
-      <Card className="border border-gray-200 bg-white shadow-sm">
+      <Card className="border border-gray-700 bg-white/5 dark:bg-slate-800 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-gray-900">Danh sách hóa đơn của bạn</CardTitle>
+          <CardTitle className="text-white">Danh sách hóa đơn của bạn</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700">Căn hộ</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Kỳ</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
-                  <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
+              <TableRow className="border-b border-gray-700 bg-gray-50/40 dark:bg-gray-700">
+                  <TableHead className="font-semibold text-slate-300">Căn hộ</TableHead>
+                  <TableHead className="font-semibold text-slate-300">Chủ sở hữu</TableHead>
+                  <TableHead className="font-semibold text-slate-300">Kỳ</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-300">Tổng số tiền</TableHead>
+                  <TableHead className="text-center font-semibold text-slate-300">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentBills.map((bill) => (
-                <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-200 bg-white hover:bg-gray-50">
-                    <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
-                    <TableCell className="text-gray-900">{bill.owner}</TableCell>
-                    <TableCell className="text-gray-700 text-sm">{bill.period ?? '-'}</TableCell>
-                    <TableCell className="text-right font-semibold text-gray-900">
+                <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-700 bg-transparent hover:bg-slate-700/40 transition-colors">
+                    <TableCell className="font-medium text-slate-100">{bill.apt_id}</TableCell>
+                    <TableCell className="text-slate-200">{bill.owner}</TableCell>
+                    <TableCell className="text-slate-300 text-sm">{bill.period ?? '-'}</TableCell>
+                    <TableCell className="text-right font-semibold text-slate-100">
                       {formatCurrency(bill.water + bill.electric + bill.pre_debt + bill.service + bill.vehicles)}
                     </TableCell>
                   <TableCell className="text-center">

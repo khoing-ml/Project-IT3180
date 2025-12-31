@@ -123,46 +123,39 @@ export default function AdminResidentsPage() {
   };
 
   if (authLoading || isLoading) return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-screen bg-slate-900">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Đang tải...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-slate-400">Đang tải...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 ">
       <Sidebar />
-      <div className="ml-72 p-8 app-main text-gray-900">
+      <main className="ml-4 lg:ml-72 p-8 app-main text-slate-100 relative z-30">
         <Header />
         <div className="max-w-7xl mx-auto">
           <BackButton />
           
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-4 shadow-lg">
-                <UsersIcon className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Quản lý cư dân
-                </h1>
-                <p className="text-gray-600 mt-1">Quản lý thông tin cư dân trong chung cư</p>
-              </div>
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">Quản Lý Cư Dân</h1>
+              <p className="text-slate-300">Quản lý thông tin cư dân trong chung cư</p>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-slate-200 dark:border-gray-700 shadow-xl">
+          <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-slate-700">
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Lọc theo căn hộ</label>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Lọc theo căn hộ</label>
                 <select 
                   value={apt} 
                   onChange={e => setApt(e.target.value)} 
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 >
                   <option value="">Tất cả căn hộ</option>
                   {apartments.map(a => (
@@ -173,79 +166,78 @@ export default function AdminResidentsPage() {
               <div className="pt-6">
                 <button 
                   onClick={() => setShowForm(true)} 
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-shadow font-medium"
                 >
                   <UserPlus className="w-5 h-5" />
-                  Thêm cư dân
+                  Thêm Cư Dân
                 </button>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 rounded-2xl text-red-800 shadow-lg">
+            <div className="mb-4 p-4 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200">
               {error}
             </div>
           )}
 
           {/* Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-slate-200 dark:border-gray-700 shadow-2xl overflow-hidden">
+          <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-slate-700">
             {residents.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                <UsersIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg">Không có cư dân</p>
-                <p className="text-sm text-gray-400 mt-2">Thêm cư dân mới để bắt đầu quản lý</p>
+              <div className="p-12 text-center">
+                <UsersIcon className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+                <p className="text-lg text-slate-300">Không có cư dân</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
+                  <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Căn hộ</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Họ tên</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">SĐT</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Vai trò</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Năm sinh</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giới tính</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động</th>
+                      <th className="px-6 py-4 text-left font-semibold">Căn hộ</th>
+                      <th className="px-6 py-4 text-left font-semibold">Họ tên</th>
+                      <th className="px-6 py-4 text-left font-semibold">SĐT</th>
+                      <th className="px-6 py-4 text-left font-semibold">Email</th>
+                      <th className="px-6 py-4 text-left font-semibold">Vai trò</th>
+                      <th className="px-6 py-4 text-left font-semibold">Năm sinh</th>
+                      <th className="px-6 py-4 text-left font-semibold">Giới tính</th>
+                      <th className="px-6 py-4 text-left font-semibold">Hành động</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                  <tbody className="divide-y divide-slate-700">
                     {residents.map(r => (
-                      <tr key={r.id} className="hover:bg-blue-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-blue-600">{r.apt_id}</td>
-                        <td className="px-6 py-4 font-medium">{r.full_name}</td>
-                        <td className="px-6 py-4">{r.phone || '—'}</td>
-                        <td className="px-6 py-4">{r.email || '—'}</td>
+                      <tr key={r.id} className="hover:bg-slate-700/50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-white">{r.apt_id}</td>
+                        <td className="px-6 py-4 font-medium text-slate-100">{r.full_name}</td>
+                        <td className="px-6 py-4 text-slate-200">{r.phone || '—'}</td>
+                        <td className="px-6 py-4 text-slate-200">{r.email || '—'}</td>
                         <td className="px-6 py-4">
                           {r.is_owner ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-300">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/50">
                               Chủ hộ
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-500/20 text-slate-400 border border-slate-500/50">
                               Thành viên
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4">{r.yearOfBirth || '—'}</td>
-                        <td className="px-6 py-4">{r.gender === 'male' ? 'Nam' : r.gender === 'female' ? 'Nữ' : r.gender || '—'}</td>
+                        <td className="px-6 py-4 text-slate-200">{r.yearOfBirth || '—'}</td>
+                        <td className="px-6 py-4 text-slate-200">{r.gender === 'male' ? 'Nam' : r.gender === 'female' ? 'Nữ' : r.gender || '—'}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <button 
                               onClick={() => handleEdit(r)} 
-                              className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                              className="p-2 hover:bg-blue-900/50 rounded-lg transition-colors text-blue-300"
+                              title="Sửa"
                             >
-                              <Edit className="w-4 h-4" />
-                              Sửa
+                              <Edit className="w-5 h-5" />
                             </button>
                             <button 
                               onClick={() => handleDelete(r.id)} 
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                              className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-red-300"
+                              title="Xóa"
                             >
-                              <Trash2 className="w-4 h-4" />
-                              Xóa
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         </td>
@@ -259,28 +251,17 @@ export default function AdminResidentsPage() {
 
           {/* Create Modal */}
           {showForm && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-700">
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold text-slate-200 mb-6">Thêm Cư Dân Mới</h2>
+                <form onSubmit={e => { e.preventDefault(); handleCreate(); }} className="space-y-4">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Thêm cư dân mới</h3>
-                    <p className="text-sm text-gray-500 mt-1">Điền thông tin cư dân vào hệ thống</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowForm(false)} 
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <span className="text-2xl text-gray-500">&times;</span>
-                  </button>
-                </div>
-
-                <form onSubmit={e => { e.preventDefault(); handleCreate(); }} className="p-6 space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Căn hộ *</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Căn hộ *</label>
                     <select 
                       value={apt} 
                       onChange={e => setApt(e.target.value)} 
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       required
                     >
                       <option value="">-- Chọn căn hộ --</option>
@@ -292,70 +273,70 @@ export default function AdminResidentsPage() {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Họ và tên *</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Họ và tên *</label>
                       <input 
                         type="text"
                         placeholder="Nguyễn Văn A" 
                         value={form.full_name} 
                         onChange={e => setForm({...form, full_name: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Số điện thoại</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Số điện thoại</label>
                       <input 
                         type="tel"
                         placeholder="0901234567" 
                         value={form.phone} 
                         onChange={e => setForm({...form, phone: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-slate-200 mb-2">Email</label>
                     <input 
                       type="email"
                       placeholder="email@example.com" 
                       value={form.email} 
                       onChange={e => setForm({...form, email: e.target.value})} 
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Năm sinh</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Năm sinh</label>
                       <input 
                         type="number" 
                         placeholder="1990" 
                         value={form.yearOfBirth} 
                         onChange={e => setForm({...form, yearOfBirth: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         min="1900"
                         max={new Date().getFullYear()}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Quê quán</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Quê quán</label>
                       <input 
                         type="text"
                         placeholder="Hà Nội" 
                         value={form.hometown} 
                         onChange={e => setForm({...form, hometown: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Giới tính</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Giới tính</label>
                       <select 
                         value={form.gender} 
                         onChange={e => setForm({...form, gender: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       >
                         <option value="">-- Chọn --</option>
                         <option value="male">Nam</option>
@@ -365,174 +346,169 @@ export default function AdminResidentsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-3">
                     <input 
                       id="is_owner" 
                       type="checkbox" 
                       checked={form.is_owner} 
                       onChange={e => setForm({...form, is_owner: e.target.checked})} 
-                      className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
+                      className="h-4 w-4 text-blue-500 rounded border-slate-600 focus:ring-2 focus:ring-blue-500 bg-slate-700"
                     />
-                    <label htmlFor="is_owner" className="text-sm font-medium text-gray-700 cursor-pointer">
+                    <label htmlFor="is_owner" className="text-sm font-medium text-slate-300 cursor-pointer">
                       Đánh dấu là chủ hộ (sẽ tự động bỏ chủ hộ hiện tại nếu có)
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-end gap-3 pt-4">
                     <button 
                       type="button" 
                       onClick={() => setShowForm(false)} 
-                      className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                      className="px-6 py-2 border border-slate-600 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition-colors"
                     >
                       Hủy
                     </button>
                     <button 
                       type="submit" 
                       disabled={!form.full_name || !apt} 
-                      className={`px-6 py-3 rounded-xl text-white font-semibold transition-all ${
+                      className={`px-6 py-2 rounded-lg text-white font-medium transition-colors ${
                         (!form.full_name || !apt) 
-                          ? 'bg-gray-300 cursor-not-allowed' 
-                          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-xl hover:scale-105'
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700'
                       }`}
                     >
-                      Lưu thông tin
+                      Lưu Thông Tin
                     </button>
                   </div>
                 </form>
+                </div>
               </div>
             </div>
           )}
 
           {/* Edit Modal */}
           {showEditForm && editingResident && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Chỉnh sửa cư dân</h3>
-                    <p className="text-sm text-gray-500 mt-1">Cập nhật thông tin: {editingResident.full_name}</p>
-                  </div>
-                  <button 
-                    onClick={() => { setShowEditForm(false); setEditingResident(null); }} 
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <span className="text-2xl text-gray-500">&times;</span>
-                  </button>
-                </div>
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-700">
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold text-slate-200 mb-6">Chỉnh Sửa Cư Dân</h2>
+                  
+                  <form onSubmit={e => { e.preventDefault(); handleUpdate(); }} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Họ và tên *</label>
+                        <input 
+                          type="text"
+                          placeholder="Nguyễn Văn A" 
+                          value={form.full_name} 
+                          onChange={e => setForm({...form, full_name: e.target.value})} 
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Số điện thoại</label>
+                        <input 
+                          type="tel"
+                          placeholder="0901234567" 
+                          value={form.phone} 
+                          onChange={e => setForm({...form, phone: e.target.value})} 
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                    </div>
 
-                <form onSubmit={e => { e.preventDefault(); handleUpdate(); }} className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Họ và tên *</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Email</label>
                       <input 
-                        type="text"
-                        placeholder="Nguyễn Văn A" 
-                        value={form.full_name} 
-                        onChange={e => setForm({...form, full_name: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        required
+                        type="email"
+                        placeholder="email@example.com" 
+                        value={form.email} 
+                        onChange={e => setForm({...form, email: e.target.value})} 
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Số điện thoại</label>
-                      <input 
-                        type="tel"
-                        placeholder="0901234567" 
-                        value={form.phone} 
-                        onChange={e => setForm({...form, phone: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <input 
-                      type="email"
-                      placeholder="email@example.com" 
-                      value={form.email} 
-                      onChange={e => setForm({...form, email: e.target.value})} 
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Năm sinh</label>
+                        <input 
+                          type="number" 
+                          placeholder="1990" 
+                          value={form.yearOfBirth} 
+                          onChange={e => setForm({...form, yearOfBirth: e.target.value})} 
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          min="1900"
+                          max={new Date().getFullYear()}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Quê quán</label>
+                        <input 
+                          type="text"
+                          placeholder="Hà Nội" 
+                          value={form.hometown} 
+                          onChange={e => setForm({...form, hometown: e.target.value})} 
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Giới tính</label>
+                        <select 
+                          value={form.gender} 
+                          onChange={e => setForm({...form, gender: e.target.value})} 
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">-- Chọn --</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
+                        </select>
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Năm sinh</label>
+                    <div className="flex items-center gap-3">
                       <input 
-                        type="number" 
-                        placeholder="1990" 
-                        value={form.yearOfBirth} 
-                        onChange={e => setForm({...form, yearOfBirth: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        min="1900"
-                        max={new Date().getFullYear()}
+                        id="is_owner_edit" 
+                        type="checkbox" 
+                        checked={form.is_owner} 
+                        onChange={e => setForm({...form, is_owner: e.target.checked})} 
+                        className="h-4 w-4 text-blue-500 rounded border-slate-600 focus:ring-2 focus:ring-blue-500 bg-slate-700"
                       />
+                      <label htmlFor="is_owner_edit" className="text-sm font-medium text-slate-300 cursor-pointer">
+                        Đánh dấu là chủ hộ
+                      </label>
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Quê quán</label>
-                      <input 
-                        type="text"
-                        placeholder="Hà Nội" 
-                        value={form.hometown} 
-                        onChange={e => setForm({...form, hometown: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Giới tính</label>
-                      <select 
-                        value={form.gender} 
-                        onChange={e => setForm({...form, gender: e.target.value})} 
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+
+                    <div className="flex items-center justify-end gap-3 pt-4">
+                      <button 
+                        type="button" 
+                        onClick={() => { setShowEditForm(false); setEditingResident(null); }} 
+                        className="px-6 py-2 border border-slate-600 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition-colors"
                       >
-                        <option value="">-- Chọn --</option>
-                        <option value="male">Nam</option>
-                        <option value="female">Nữ</option>
-                        <option value="other">Khác</option>
-                      </select>
+                        Hủy
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={!form.full_name} 
+                        className={`px-6 py-2 rounded-lg text-white font-medium transition-colors ${
+                          !form.full_name 
+                            ? 'bg-gray-600 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        Cập Nhật
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <input 
-                      id="is_owner_edit" 
-                      type="checkbox" 
-                      checked={form.is_owner} 
-                      onChange={e => setForm({...form, is_owner: e.target.checked})} 
-                      className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <label htmlFor="is_owner_edit" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      Đánh dấu là chủ hộ
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                    <button 
-                      type="button" 
-                      onClick={() => { setShowEditForm(false); setEditingResident(null); }} 
-                      className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      Hủy
-                    </button>
-                    <button 
-                      type="submit" 
-                      disabled={!form.full_name} 
-                      className={`px-6 py-3 rounded-xl text-white font-semibold transition-all ${
-                        !form.full_name 
-                          ? 'bg-gray-300 cursor-not-allowed' 
-                          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-xl hover:scale-105'
-                      }`}
-                    >
-                      Cập nhật
-                    </button>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </div>
             </div>
           )}
+
+
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }

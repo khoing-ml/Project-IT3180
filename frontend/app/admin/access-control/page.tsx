@@ -173,11 +173,11 @@ export default function AccessControlPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-50 text-green-700 border-green-200';
-      case 'inactive': return 'bg-gray-50 text-gray-700 border-gray-200';
-      case 'lost': return 'bg-orange-50 text-orange-700 border-orange-200';
-      case 'blocked': return 'bg-red-50 text-red-700 border-red-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'active': return 'bg-green-500/20 text-green-400 border-green-500/50';
+      case 'inactive': return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+      case 'lost': return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+      case 'blocked': return 'bg-red-500/20 text-red-400 border-red-500/50';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
     }
   };
 
@@ -271,7 +271,7 @@ export default function AccessControlPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Sidebar />
       <div className="ml-72 p-8">
         <Header />
@@ -283,8 +283,8 @@ export default function AccessControlPage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Quản Lý Thẻ Cư Dân</h1>
-              <p className="text-gray-600">Quản lý và kiểm soát thẻ ra vào của cư dân</p>
+              <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">Quản Lý Thẻ Cư Dân</h1>
+              <p className="text-slate-400">Quản lý và kiểm soát thẻ ra vào của cư dân</p>
             </div>
             <button
               onClick={() => {
@@ -307,38 +307,38 @@ export default function AccessControlPage() {
           {/* Statistics Cards */}
           {statistics && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+              <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Tổng số thẻ</p>
-                    <p className="text-3xl font-bold text-gray-900">{statistics.total}</p>
+                    <p className="text-sm text-slate-400 mb-1">Tổng số thẻ</p>
+                    <p className="text-3xl font-bold text-slate-100">{statistics.total}</p>
                   </div>
                   <BarChart3 className="w-12 h-12 text-blue-500 opacity-20" />
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+              <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border-l-4 border-green-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Đang hoạt động</p>
-                    <p className="text-3xl font-bold text-green-600">{statistics.active}</p>
+                    <p className="text-sm text-slate-400 mb-1">Đang hoạt động</p>
+                    <p className="text-3xl font-bold text-green-400">{statistics.active}</p>
                   </div>
                   <Unlock className="w-12 h-12 text-green-500 opacity-20" />
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+              <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Thẻ mất</p>
-                    <p className="text-3xl font-bold text-orange-600">{statistics.lost}</p>
+                    <p className="text-sm text-slate-400 mb-1">Thẻ mất</p>
+                    <p className="text-3xl font-bold text-orange-400">{statistics.lost}</p>
                   </div>
                   <AlertCircle className="w-12 h-12 text-orange-500 opacity-20" />
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+              <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border-l-4 border-red-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Bị khóa</p>
-                    <p className="text-3xl font-bold text-red-600">{statistics.blocked}</p>
+                    <p className="text-sm text-slate-400 mb-1">Bị khóa</p>
+                    <p className="text-3xl font-bold text-red-400">{statistics.blocked}</p>
                   </div>
                   <Lock className="w-12 h-12 text-red-500 opacity-20" />
                 </div>
@@ -348,9 +348,9 @@ export default function AccessControlPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-4 p-4 bg-red-900/30 border border-red-500/50 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-300">{error}</p>
             </div>
           )}
 
@@ -362,8 +362,8 @@ export default function AccessControlPage() {
                 onClick={() => setFilter(f)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   filter === f
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-500'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-blue-500'
                 }`}
               >
                 {f === 'all' ? 'Tất cả' : getStatusText(f)}
@@ -375,11 +375,11 @@ export default function AccessControlPage() {
           </div>
 
           {/* Cards Table */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-slate-700">
             {filteredCards.length === 0 ? (
               <div className="p-12 text-center">
-                <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">Không tìm thấy thẻ nào</p>
+                <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">Không tìm thấy thẻ nào</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -395,16 +395,16 @@ export default function AccessControlPage() {
                       <th className="px-6 py-4 text-left font-semibold">Thao Tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-700">
                     {filteredCards.map((card) => (
-                      <tr key={card.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-mono font-semibold text-gray-900">{card.card_number}</td>
+                      <tr key={card.id} className="hover:bg-slate-700/50 transition-colors">
+                        <td className="px-6 py-4 font-mono font-semibold text-slate-200">{card.card_number}</td>
                         <td className="px-6 py-4">
-                          <div className="text-gray-900 font-medium">{card.resident?.full_name}</div>
-                          <div className="text-sm text-gray-500">Căn hộ #{card.resident?.apartment_number}</div>
+                          <div className="text-slate-200 font-medium">{card.resident?.full_name}</div>
+                          <div className="text-sm text-slate-400">Căn hộ #{card.resident?.apartment_number}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-full text-sm font-medium">
                             {getCardTypeText(card.card_type)}
                           </span>
                         </td>
@@ -414,10 +414,10 @@ export default function AccessControlPage() {
                             <span className="font-medium text-sm">{getStatusText(card.status)}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-700">
+                        <td className="px-6 py-4 text-slate-300">
                           {new Date(card.issued_date).toLocaleDateString('vi-VN')}
                         </td>
-                        <td className="px-6 py-4 text-gray-700">
+                        <td className="px-6 py-4 text-slate-300">
                           {card.expiry_date ? new Date(card.expiry_date).toLocaleDateString('vi-VN') : 'Không hết hạn'}
                         </td>
                         <td className="px-6 py-4">
@@ -429,7 +429,7 @@ export default function AccessControlPage() {
                                 setActiveTab('info');
                                 fetchCardDetails(card.id);
                               }}
-                              className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
+                              className="p-2 hover:bg-blue-900/50 rounded-lg transition-colors text-blue-400"
                               title="Xem chi tiết"
                             >
                               <Eye className="w-5 h-5" />
@@ -443,7 +443,7 @@ export default function AccessControlPage() {
                                 });
                                 setShowRenewModal(true);
                               }}
-                              className="p-2 hover:bg-green-100 rounded-lg transition-colors text-green-600"
+                              className="p-2 hover:bg-green-900/50 rounded-lg transition-colors text-green-400"
                               title="Gia hạn thẻ"
                             >
                               <RefreshCw className="w-5 h-5" />
@@ -451,7 +451,7 @@ export default function AccessControlPage() {
                             {card.status !== 'blocked' && (
                               <button
                                 onClick={() => handleStatusUpdate(card.id, 'blocked')}
-                                className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                                className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-red-400"
                                 title="Khóa thẻ"
                               >
                                 <Lock className="w-5 h-5" />
@@ -460,7 +460,7 @@ export default function AccessControlPage() {
                             {card.status === 'blocked' && (
                               <button
                                 onClick={() => handleStatusUpdate(card.id, 'active')}
-                                className="p-2 hover:bg-green-100 rounded-lg transition-colors text-green-600"
+                                className="p-2 hover:bg-green-900/50 rounded-lg transition-colors text-green-400"
                                 title="Kích hoạt thẻ"
                               >
                                 <Unlock className="w-5 h-5" />
@@ -468,7 +468,7 @@ export default function AccessControlPage() {
                             )}
                             <button
                               onClick={() => handleDelete(card.id)}
-                              className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                              className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-red-400"
                               title="Xóa"
                             >
                               <Trash2 className="w-5 h-5" />
@@ -485,19 +485,19 @@ export default function AccessControlPage() {
 
           {/* Create Modal */}
           {showModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-slate-700">
                 <div className="p-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Cấp Thẻ Cư Dân Mới</h2>
+                  <h2 className="text-2xl font-bold text-slate-200 mb-6">Cấp Thẻ Cư Dân Mới</h2>
                   
                   <form onSubmit={handleCreateCard} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Chọn Cư Dân *</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Chọn Cư Dân *</label>
                       <select
                         required
                         value={formData.resident_id}
                         onChange={(e) => setFormData({ ...formData, resident_id: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       >
                         <option value="">Chọn cư dân...</option>
                         {residents.map((resident) => (
@@ -509,24 +509,24 @@ export default function AccessControlPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Số Thẻ *</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Số Thẻ *</label>
                       <input
                         type="text"
                         required
                         value={formData.card_number}
                         onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none placeholder:text-slate-500"
                         placeholder="VD: RC-2024-0001"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Loại Thẻ</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Loại Thẻ</label>
                         <select
                           value={formData.card_type}
                           onChange={(e) => setFormData({ ...formData, card_type: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         >
                           <option value="resident">Cư dân</option>
                           <option value="guest">Khách</option>
@@ -534,22 +534,22 @@ export default function AccessControlPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Ngày Hết Hạn</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Ngày Hết Hạn</label>
                         <input
                           type="date"
                           value={formData.expiry_date}
                           onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ghi Chú</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Ghi Chú</label>
                       <textarea
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                        className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none placeholder:text-slate-500"
                         rows={3}
                         placeholder="Thông tin bổ sung"
                       />
@@ -559,13 +559,13 @@ export default function AccessControlPage() {
                       <button
                         type="button"
                         onClick={() => setShowModal(false)}
-                        className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="px-6 py-2 border border-slate-600 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition-colors"
                       >
                         Hủy
                       </button>
                       <button
                         type="submit"
-                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                       >
                         Cấp Thẻ
                       </button>
@@ -578,30 +578,30 @@ export default function AccessControlPage() {
 
           {/* Renew Modal */}
           {showRenewModal && selectedCard && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-slate-700">
                 <div className="p-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Gia Hạn Thẻ</h2>
-                  <p className="text-gray-600 mb-4">Thẻ: <span className="font-mono font-semibold">{selectedCard.card_number}</span></p>
+                  <h2 className="text-2xl font-bold text-slate-200 mb-6">Gia Hạn Thẻ</h2>
+                  <p className="text-slate-400 mb-4">Thẻ: <span className="font-mono font-semibold text-slate-200">{selectedCard.card_number}</span></p>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ngày Hết Hạn Mới *</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Ngày Hết Hạn Mới *</label>
                       <input
                         type="date"
                         required
                         value={renewData.expiry_date}
                         onChange={(e) => setRenewData({ ...renewData, expiry_date: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ghi Chú</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Ghi Chú</label>
                       <textarea
                         value={renewData.notes}
                         onChange={(e) => setRenewData({ ...renewData, notes: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                        className="w-full px-4 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none placeholder:text-slate-500"
                         rows={2}
                         placeholder="Lý do gia hạn"
                       />
@@ -610,13 +610,13 @@ export default function AccessControlPage() {
                     <div className="flex gap-3 justify-end pt-4">
                       <button
                         onClick={() => setShowRenewModal(false)}
-                        className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="px-6 py-2 border border-slate-600 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition-colors"
                       >
                         Hủy
                       </button>
                       <button
                         onClick={handleRenewCard}
-                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                       >
                         Gia Hạn
                       </button>
@@ -629,18 +629,18 @@ export default function AccessControlPage() {
 
           {/* Detail Modal */}
           {showDetailModal && selectedCard && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900">Chi Tiết Thẻ Cư Dân</h2>
-                  <p className="text-sm text-gray-500 mt-1">Số thẻ: {selectedCard.card_number}</p>
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
+                <div className="p-6 border-b border-slate-700">
+                  <h2 className="text-2xl font-bold text-slate-200">Chi Tiết Thẻ Cư Dân</h2>
+                  <p className="text-sm text-slate-400 mt-1">Số thẻ: {selectedCard.card_number}</p>
                 </div>
 
-                <div className="flex border-b border-gray-200 px-6">
+                <div className="flex border-b border-slate-700 px-6">
                   <button
                     onClick={() => setActiveTab('info')}
                     className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === 'info' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                      activeTab === 'info' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4" />Thông tin</div>
@@ -648,7 +648,7 @@ export default function AccessControlPage() {
                   <button
                     onClick={() => setActiveTab('history')}
                     className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === 'history' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                      activeTab === 'history' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2"><History className="w-4 h-4" />Lịch sử</div>
@@ -656,7 +656,7 @@ export default function AccessControlPage() {
                   <button
                     onClick={() => setActiveTab('logs')}
                     className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === 'logs' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                      activeTab === 'logs' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2"><Activity className="w-4 h-4" />Quét thẻ</div>
@@ -664,7 +664,7 @@ export default function AccessControlPage() {
                   <button
                     onClick={() => setActiveTab('fees')}
                     className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === 'fees' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                      activeTab === 'fees' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2"><DollarSign className="w-4 h-4" />Phí</div>
@@ -682,47 +682,47 @@ export default function AccessControlPage() {
                         <div className="space-y-6">
                           <div className="grid grid-cols-2 gap-6">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Số thẻ</label>
-                              <p className="text-lg font-mono font-semibold text-gray-900">{selectedCard.card_number}</p>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Số thẻ</label>
+                              <p className="text-lg font-mono font-semibold text-slate-200">{selectedCard.card_number}</p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Trạng thái</label>
                               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(selectedCard.status)}`}>
                                 {getStatusIcon(selectedCard.status)}
                                 <span className="font-medium">{getStatusText(selectedCard.status)}</span>
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Cư dân</label>
-                              <p className="text-gray-900">{selectedCard.resident?.full_name}</p>
-                              <p className="text-sm text-gray-500">Căn hộ #{selectedCard.resident?.apartment_number}</p>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Cư dân</label>
+                              <p className="text-slate-200">{selectedCard.resident?.full_name}</p>
+                              <p className="text-sm text-slate-400">Căn hộ #{selectedCard.resident?.apartment_number}</p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Loại thẻ</label>
-                              <p className="text-gray-900">{getCardTypeText(selectedCard.card_type)}</p>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Loại thẻ</label>
+                              <p className="text-slate-200">{getCardTypeText(selectedCard.card_type)}</p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày cấp</label>
-                              <p className="text-gray-900">{new Date(selectedCard.issued_date).toLocaleDateString('vi-VN')}</p>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Ngày cấp</label>
+                              <p className="text-slate-200">{new Date(selectedCard.issued_date).toLocaleDateString('vi-VN')}</p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Hết hạn</label>
-                              <p className="text-gray-900">{selectedCard.expiry_date ? new Date(selectedCard.expiry_date).toLocaleDateString('vi-VN') : 'Không hết hạn'}</p>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Hết hạn</label>
+                              <p className="text-slate-200">{selectedCard.expiry_date ? new Date(selectedCard.expiry_date).toLocaleDateString('vi-VN') : 'Không hết hạn'}</p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Người cấp</label>
-                              <p className="text-gray-900">{selectedCard.issuer?.full_name || 'Hệ thống'}</p>
+                              <label className="block text-sm font-medium text-slate-400 mb-2">Người cấp</label>
+                              <p className="text-slate-200">{selectedCard.issuer?.full_name || 'Hệ thống'}</p>
                             </div>
                             {selectedCard.reason_for_status && (
                               <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Lý do</label>
-                                <p className="text-red-600">{selectedCard.reason_for_status}</p>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Lý do</label>
+                                <p className="text-red-400">{selectedCard.reason_for_status}</p>
                               </div>
                             )}
                             {selectedCard.notes && (
                               <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
-                                <p className="text-gray-900">{selectedCard.notes}</p>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Ghi chú</label>
+                                <p className="text-slate-200">{selectedCard.notes}</p>
                               </div>
                             )}
                           </div>
@@ -732,23 +732,23 @@ export default function AccessControlPage() {
                       {activeTab === 'history' && (
                         <div className="space-y-4">
                           {cardHistory.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">Chưa có lịch sử</p>
+                            <p className="text-center text-slate-400 py-8">Chưa có lịch sử</p>
                           ) : (
                             cardHistory.map((item) => (
-                              <div key={item.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <div key={item.id} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                                 <div className="flex items-start justify-between mb-2">
                                   <div>
-                                    <span className="font-semibold text-gray-900">{getActionTypeText(item.action_type)}</span>
-                                    <p className="text-sm text-gray-600 mt-1">Bởi: {item.action_user?.full_name || 'Hệ thống'}</p>
+                                    <span className="font-semibold text-slate-200">{getActionTypeText(item.action_type)}</span>
+                                    <p className="text-sm text-slate-400 mt-1">Bởi: {item.action_user?.full_name || 'Hệ thống'}</p>
                                   </div>
-                                  <span className="text-xs text-gray-500">{new Date(item.created_at).toLocaleString('vi-VN')}</span>
+                                  <span className="text-xs text-slate-500">{new Date(item.created_at).toLocaleString('vi-VN')}</span>
                                 </div>
                                 {item.old_status && item.new_status && (
-                                  <p className="text-sm text-gray-700">
+                                  <p className="text-sm text-slate-300">
                                     Trạng thái: <span className="font-medium">{getStatusText(item.old_status)}</span> → <span className="font-medium">{getStatusText(item.new_status)}</span>
                                   </p>
                                 )}
-                                {item.reason && <p className="text-sm text-gray-600 mt-1">Lý do: {item.reason}</p>}
+                                {item.reason && <p className="text-sm text-slate-400 mt-1">Lý do: {item.reason}</p>}
                               </div>
                             ))
                           )}
@@ -758,25 +758,25 @@ export default function AccessControlPage() {
                       {activeTab === 'logs' && (
                         <div className="space-y-3">
                           {accessLogs.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">Chưa có lịch sử quét thẻ</p>
+                            <p className="text-center text-slate-400 py-8">Chưa có lịch sử quét thẻ</p>
                           ) : (
                             accessLogs.map((log) => (
-                              <div key={log.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-start justify-between">
+                              <div key={log.id} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
-                                    <span className={`px-2 py-1 rounded text-xs font-medium ${log.access_type === 'entry' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${log.access_type === 'entry' ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-blue-500/20 text-blue-400 border border-blue-500/50'}`}>
                                       {getAccessTypeText(log.access_type)}
                                     </span>
-                                    <span className={`px-2 py-1 rounded text-xs font-medium ${log.access_status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${log.access_status === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-red-500/20 text-red-400 border border-red-500/50'}`}>
                                       {getAccessStatusText(log.access_status)}
                                     </span>
-                                    <span className="font-semibold text-gray-900">{log.access_point}</span>
+                                    <span className="font-semibold text-slate-200">{log.access_point}</span>
                                   </div>
-                                  {log.notes && <p className="text-sm text-gray-600">{log.notes}</p>}
+                                  {log.notes && <p className="text-sm text-slate-400">{log.notes}</p>}
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm text-gray-900 font-medium">{new Date(log.access_time).toLocaleTimeString('vi-VN')}</p>
-                                  <p className="text-xs text-gray-500">{new Date(log.access_time).toLocaleDateString('vi-VN')}</p>
+                                  <p className="text-sm text-slate-200 font-medium">{new Date(log.access_time).toLocaleTimeString('vi-VN')}</p>
+                                  <p className="text-xs text-slate-500">{new Date(log.access_time).toLocaleDateString('vi-VN')}</p>
                                 </div>
                               </div>
                             ))
@@ -787,27 +787,27 @@ export default function AccessControlPage() {
                       {activeTab === 'fees' && (
                         <div className="space-y-4">
                           {cardFees.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">Không có khoản phí</p>
+                            <p className="text-center text-slate-400 py-8">Không có khoản phí</p>
                           ) : (
                             cardFees.map((fee) => (
-                              <div key={fee.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <div key={fee.id} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                                 <div className="flex items-start justify-between mb-2">
                                   <div>
-                                    <span className="font-semibold text-gray-900">{getFeeTypeText(fee.fee_type)}</span>
-                                    <p className="text-sm text-gray-600 mt-1">{fee.description}</p>
+                                    <span className="font-semibold text-slate-200">{getFeeTypeText(fee.fee_type)}</span>
+                                    <p className="text-sm text-slate-400 mt-1">{fee.description}</p>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-lg font-bold text-gray-900">{formatCurrency(fee.amount)}</p>
+                                    <p className="text-lg font-bold text-slate-200">{formatCurrency(fee.amount)}</p>
                                     <span className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${
-                                      fee.status === 'paid' ? 'bg-green-100 text-green-700' : 
-                                      fee.status === 'waived' ? 'bg-blue-100 text-blue-700' : 
-                                      'bg-orange-100 text-orange-700'
+                                      fee.status === 'paid' ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 
+                                      fee.status === 'waived' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 
+                                      'bg-orange-500/20 text-orange-400 border border-orange-500/50'
                                     }`}>
                                       {getFeeStatusText(fee.status)}
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-300">
+                                <div className="flex items-center justify-between text-xs text-slate-500 mt-3 pt-3 border-t border-slate-600">
                                   <span>Tạo: {new Date(fee.created_at).toLocaleDateString('vi-VN')}</span>
                                   {fee.paid_at && <span>Thanh toán: {new Date(fee.paid_at).toLocaleDateString('vi-VN')}</span>}
                                 </div>
@@ -820,13 +820,13 @@ export default function AccessControlPage() {
                   )}
                 </div>
 
-                <div className="flex gap-3 justify-end p-6 border-t border-gray-200">
+                <div className="flex gap-3 justify-end p-6 border-t border-slate-700">
                   <button
                     onClick={() => {
                       setShowDetailModal(false);
                       setSelectedCard(null);
                     }}
-                    className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="px-6 py-2 border border-slate-600 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition-colors"
                   >
                     Đóng
                   </button>

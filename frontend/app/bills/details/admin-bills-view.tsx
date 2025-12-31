@@ -286,9 +286,9 @@ export function AdminBillsView() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Sidebar />
-      <div className="ml-72 p-6">
+      <div className="ml-4 lg:ml-72 p-6 relative z-30 text-slate-100">
         <Header />
         <div className="mx-auto max-w-7xl space-y-6">
           {/* Back Button */}
@@ -356,15 +356,15 @@ export function AdminBillsView() {
       </div>
 
       {/* Bills Table */}
-      <Card className="border-0 bg-white shadow-lg">
+      <Card className="border-0 bg-white/5 dark:bg-slate-800 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-md">
-                <FileText className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-md">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Danh sách hóa đơn các căn hộ</CardTitle>
               </div>
-              <CardTitle className="text-gray-900 text-xl">Danh sách hóa đơn các căn hộ</CardTitle>
-            </div>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="h-4 w-4" />
               Export
@@ -431,14 +431,14 @@ export function AdminBillsView() {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700">Căn hộ</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Trạng thái</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Kỳ</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Hạn thanh toán</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
-                  <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
+              <TableRow className="border-b border-gray-700 bg-gray-50/40 dark:bg-gray-700">
+                  <TableHead className="font-semibold text-slate-300">Căn hộ</TableHead>
+                  <TableHead className="font-semibold text-slate-300">Chủ sở hữu</TableHead>
+                  <TableHead className="font-semibold text-slate-300">Trạng thái</TableHead>
+                  <TableHead className="font-semibold text-slate-300">Kỳ</TableHead>
+                  <TableHead className="font-semibold text-slate-300">Hạn thanh toán</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-300">Tổng số tiền</TableHead>
+                  <TableHead className="text-center font-semibold text-slate-300">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -453,15 +453,15 @@ export function AdminBillsView() {
                 );
 
                 return (
-                  <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-200 bg-white hover:bg-gray-50">
-                    <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
-                    <TableCell className="text-gray-900">{bill.owner}</TableCell>
+                  <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-700 bg-transparent hover:bg-slate-700/40 transition-colors">
+                    <TableCell className="font-medium text-slate-100">{bill.apt_id}</TableCell>
+                    <TableCell className="text-slate-200">{bill.owner}</TableCell>
                     <TableCell>{statusBadge}</TableCell>
-                    <TableCell className="text-gray-700 text-sm">{bill.period ?? '-'}</TableCell>
-                    <TableCell className="text-gray-700 text-sm">
+                    <TableCell className="text-slate-300 text-sm">{bill.period ?? '-'}</TableCell>
+                    <TableCell className="text-slate-300 text-sm">
                       {bill.due_date ? new Date(bill.due_date).toLocaleDateString('vi-VN') : '-'}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-gray-900">
+                    <TableCell className="text-right font-semibold text-slate-100">
                       {formatCurrency(bill.electric + bill.pre_debt + bill.water + bill.service + bill.vehicles)}
                     </TableCell>
                     <TableCell className="text-center">

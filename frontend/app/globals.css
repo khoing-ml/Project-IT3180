@@ -24,13 +24,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Ensure primary content uses theme foreground color (override accidental text-white) */
-.app-main, .app-main * {
-  /* Force dark text on app content to remain readable on light backgrounds.
-     Some theme toggles set --foreground to a light color for dark mode;
-     explicitly using a dark value prevents white-on-white in light panels. */
-  color: #171717 !important;
-}
+/* Removed broad color override to allow component-level Tailwind utilities
+  to control text color. A global !important color was forcing dark text
+  even on dark backgrounds when the page sets a dark background but the
+  theme variable (--foreground) remained the light-mode value. Use
+  explicit `text-...` utilities in components for predictable results. */
 
 /* Force full visibility for main app content to avoid accidental dimming/blur */
 .app-main {

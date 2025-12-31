@@ -244,7 +244,7 @@ export default function EmployeesManagementPage() {
       <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
         <Sidebar />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden ml-4 lg:ml-72 relative z-30">
           <Header />
           
           <main className="flex-1 overflow-y-auto p-6">

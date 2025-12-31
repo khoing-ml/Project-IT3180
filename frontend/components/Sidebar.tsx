@@ -38,7 +38,7 @@ export default function Sidebar() {
 
 
   return (
-    <aside className="fixed left-4 top-4 bottom-4 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 rounded-2xl overflow-y-auto shadow-2xl z-50 border border-slate-700/50">
+    <aside className="fixed left-4 top-4 bottom-4 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 rounded-2xl overflow-y-auto shadow-2xl z-20 border border-slate-700/50 lg:block">
       <div className="p-6">
         {/* Logo Section */}
         <div className="mb-10 pb-6 border-b border-slate-700">
