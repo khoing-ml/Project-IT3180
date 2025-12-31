@@ -6,7 +6,12 @@ const {
   getFinancialByFloor,
   getApartmentsInDebt,
   getApartmentFinancialSummary,
-  getBuildingFinancialSummary
+  getBuildingFinancialSummary,
+  getIncomeByPeriod,
+  getFeeBreakdown,
+  comparePeriodsFinancial,
+  getCollectionRateByPeriod,
+  getPeriodSummary
 } = require('../controllers/paymentController');
 
 /**
@@ -215,8 +220,121 @@ router.get(
  *                       type: integer
  *                     debt_ratio:
  *                       type: string
- *                       example: "12.50%"
+ *                       example: "15.5%"
  */
 router.get('/building-summary', getBuildingFinancialSummary);
+
+/**
+ * @swagger
+ * /api/payments/income-by-period:
+ *   get:
+ *     summary: Thống kê thu chi theo khoảng thời gian (cho chart)
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: start_period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-01"
+ *       - in: query
+ *         name: end_period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: Dữ liệu thu chi theo từng tháng trong khoảng thời gian
+ */
+router.get('/income-by-period', getIncomeByPeriod);
+
+/**
+ * @swagger
+ * /api/payments/fee-breakdown:
+ *   get:
+ *     summary: Phân tích chi tiết các loại phí
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *         description: Nếu không truyền sẽ lấy tổng hợp tất cả
+ *     responses:
+ *       200:
+ *         description: Tổng hợp các loại phí (điện, nước, dịch vụ, xe)
+ */
+router.get('/fee-breakdown', getFeeBreakdown);
+
+/**
+ * @swagger
+ * /api/payments/compare-periods:
+ *   get:
+ *     summary: So sánh tài chính giữa 2 kỳ
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: period1
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-11"
+ *       - in: query
+ *         name: period2
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: So sánh dữ liệu và % thay đổi
+ */
+router.get('/compare-periods', comparePeriodsFinancial);
+
+/**
+ * @swagger
+ * /api/payments/collection-rate:
+ *   get:
+ *     summary: Tỷ lệ thu theo thời gian
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: start_period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-01"
+ *       - in: query
+ *         name: end_period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: Tỷ lệ thu (%) theo từng tháng
+ */
+router.get('/collection-rate', getCollectionRateByPeriod);
+
+/**
+ * @swagger
+ * /api/payments/period-summary/:period:
+ *   get:
+ *     summary: Tổng hợp chi tiết một kỳ cụ thể
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: path
+ *         name: period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: Thông tin chi tiết tài chính của kỳ
+ */
+router.get('/period-summary/:period', getPeriodSummary);
 
 module.exports = router;

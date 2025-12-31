@@ -25,7 +25,7 @@ exports.getAllVisitors = async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    // Admin/Manager can see all visitors
+    // Admin/Manager có thể xem tất cả khách
     if (userRole === 'admin' || userRole === 'manager') {
       const { data, error } = await supabaseAdmin
         .from('visitors')
@@ -40,7 +40,7 @@ exports.getAllVisitors = async (req, res) => {
       return res.json(data);
     }
 
-    // Regular users see only their own visitors
+    // Cư dân chỉ xem khách của mình
     const { data, error } = await supabaseAdmin
       .from('visitors')
       .select(`
@@ -49,13 +49,13 @@ exports.getAllVisitors = async (req, res) => {
         approver:approved_by(id, username, full_name)
       `)
       .eq('resident_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false});
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Error fetching visitors:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Lỗi khi lấy danh sách khách:', error);
+    res.status(500).json({ error: 'Không thể lấy danh sách khách', details: error.message });
   }
 };
 
@@ -97,14 +97,9 @@ exports.createVisitor = async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    // Only residents can register visitors
-    if (userRole !== 'user') {
-      return res.status(403).json({ error: 'Only residents can register visitors' });
-    }
-
     // Validate required fields
     if (!visitor_name || !purpose || !expected_arrival) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc: tên khách, mục đích, thời gian đến dự kiến' });
     }
 
     const { data, error } = await supabaseAdmin

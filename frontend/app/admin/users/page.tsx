@@ -237,7 +237,7 @@ export default function UsersManagementPage() {
             )}
 
             {/* Filters */}
-            <div className="bg-white rounded-2xl p-6 mb-6 border border-slate-200 shadow-xl">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-slate-200 dark:border-gray-700 shadow-xl">
               <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[300px]">
                   <div className="relative group">
@@ -281,7 +281,7 @@ export default function UsersManagementPage() {
             </div>
 
             {/* Users Table */}
-            <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-2xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-slate-200 dark:border-gray-700 shadow-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
@@ -522,6 +522,18 @@ export default function UsersManagementPage() {
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
+                {formData.role === 'user' && (
+                  <div className="mt-2 p-3 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-start gap-2">
+                    <div className="bg-amber-500 rounded-full p-1 mt-0.5">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <p className="text-xs text-amber-800 font-medium">
+                      <strong>Lưu ý:</strong> User với role "user" phải đăng ký thành cư dân (resident) trước. Vui lòng tạo resident record tại trang Quản lý cư dân.
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -539,6 +551,11 @@ export default function UsersManagementPage() {
                   }
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400"
                 />
+                {formData.role === 'user' && formData.apartment_number && (
+                  <p className="mt-2 text-xs text-slate-600">
+                    Đảm bảo cư dân đã được tạo cho căn hộ này
+                  </p>
+                )}
               </div>
               <div className="flex gap-3 mt-6">
                 <button
@@ -619,6 +636,18 @@ export default function UsersManagementPage() {
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
+                {formData.role === 'user' && (
+                  <div className="mt-2 p-3 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-start gap-2">
+                    <div className="bg-amber-500 rounded-full p-1 mt-0.5">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <p className="text-xs text-amber-800 font-medium">
+                      <strong>Lưu ý:</strong> Cần có resident record trước khi chuyển sang role "user"
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">

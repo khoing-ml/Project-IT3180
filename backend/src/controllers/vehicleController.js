@@ -1,5 +1,6 @@
 const{VehicleRepository, vehicleRegistrationRepository} = require("../repositories/vehicleRepository");
 const {PAGE_SIZE} = require("../utils/constants");
+const { supabaseAdmin } = require("../config/supabase");
 
 
 class VehicleController { // TODO: add access control 
@@ -388,6 +389,103 @@ class VehicleController { // TODO: add access control
             return res.status(400).json({message: error.message});
         }
     } 
+
+    async approve_request(req, res) {
+        try {
+            const { number, monthly_fee } = req.body;
+            const userId = req.user?.id || null;
+            
+            if (!number) {
+                throw new Error("Vehicle number is required");
+            }
+            
+            // Get the registration request
+            const { data: request, error: fetchErr } = await this.registration.query_by_number(number);
+            if (fetchErr || !request) {
+                throw new Error("Registration request not found");
+            }
+            
+            // Determine monthly fee based on vehicle type if not provided
+            let fee = Number(monthly_fee || 0);
+            if (!fee || fee <= 0) {
+                const { data: feeConfig, error: feeErr } = await supabaseAdmin
+                    .from('vehicle_fee_config')
+                    .select('monthly_fee')
+                    .eq('type', request.type)
+                    .single();
+                
+                if (!feeErr && feeConfig) {
+                    fee = Number(feeConfig.monthly_fee || 0);
+                }
+            }
+            
+            // Create vehicle record
+            const vehicleData = {
+                number: request.number,
+                apt_id: request.apt_id,
+                owner: request.owner,
+                type: request.type,
+                color: request.color,
+                monthly_fee: fee,
+                status: 'active'
+            };
+            
+            const { data: newVehicle, error: insertErr } = await this.repo.insert(vehicleData);
+            if (insertErr) {
+                throw new Error(`Failed to create vehicle: ${insertErr.message}`);
+            }
+            
+            // Update registration request status
+            const updateData = {
+                status: 'approved',
+                reviewed_by: userId,
+                reviewed_at: new Date().toISOString()
+            };
+            
+            const { error: updateErr } = await this.registration.update(updateData, number);
+            if (updateErr) {
+                console.warn('Failed to update registration status:', updateErr);
+            }
+            
+            return res.status(200).json({
+                message: "Vehicle registration approved successfully",
+                vehicle: newVehicle
+            });
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
+    
+    async reject_request(req, res) {
+        try {
+            const { number, rejection_reason } = req.body;
+            const userId = req.user?.id || null;
+            
+            if (!number) {
+                throw new Error("Vehicle number is required");
+            }
+            
+            // Update registration request status
+            const updateData = {
+                status: 'rejected',
+                reviewed_by: userId,
+                reviewed_at: new Date().toISOString(),
+                rejection_reason: rejection_reason || 'No reason provided'
+            };
+            
+            const { data, error } = await this.registration.update(updateData, number);
+            if (error) {
+                throw new Error(error.message);
+            }
+            
+            return res.status(200).json({
+                message: "Vehicle registration rejected",
+                data: data
+            });
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
 
     async query_request_by_apt(req, res) {
         try {

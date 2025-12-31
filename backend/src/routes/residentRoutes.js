@@ -58,6 +58,12 @@ router.get('/all', residentController.listAll);
  *                 type: string
  *               is_owner:
  *                 type: boolean
+ *               year_of_birth:
+ *                 type: integer
+ *               hometown:
+ *                 type: string
+ *               gender:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Resident created
@@ -65,6 +71,78 @@ router.get('/all', residentController.listAll);
  *         description: Bad request
  */
 router.post('/', residentController.create);
+
+/**
+ * @swagger
+ * /residents/{id}:
+ *   put:
+ *     summary: Update a resident
+ *     tags: [Residents]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Resident id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               is_owner:
+ *                 type: boolean
+ *               yearOfBirth:
+ *                 type: integer
+ *               hometown:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Resident updated
+ *       400:
+ *         description: Bad request
+ */
+router.put('/:id', residentController.update);
+
+/**
+ * @swagger
+ * /residents/{id}/link-user:
+ *   post:
+ *     summary: Link resident to user account
+ *     tags: [Residents]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Resident id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Resident linked to user
+ *       400:
+ *         description: Bad request
+ */
+router.post('/:id/link-user', residentController.linkToUser);
 
 /**
  * @swagger

@@ -4,6 +4,9 @@ export interface Resident {
   full_name: string;
   phone?: string;
   email?: string;
+  yearOfBirth?: number;
+  hometown?: string;
+  gender?: 'male' | 'female' | 'other' | string;
   is_owner?: boolean;
   created_at?: string;
 }

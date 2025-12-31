@@ -128,6 +128,93 @@ class BillRepository {
         return res;
     }
 
+    async getBillAnalytics() {
+        const res = await supabaseAdmin
+            .from('bill_analytics')
+            .select('*')
+            .order('period', { ascending: false });
+        return res;
+    }
+
+    async getPaymentStats(period = null) {
+        const res = await supabaseAdmin
+            .rpc('get_payment_stats', { p_period: period });
+        return res;
+    }
+
+    async getApartmentBillHistory(apt_id) {
+        const res = await supabaseAdmin
+            .rpc('get_apartment_bill_history', { p_apt_id: apt_id });
+        return res;
+    }
+
+    async updateBillStatus(apt_id, period, status) {
+        const res = await supabaseAdmin
+            .from('bills')
+            .update({ status })
+            .eq('apt_id', apt_id)
+            .eq('period', period)
+            .select();
+        return res;
+    }
+
+    async markBillAsPaid(apt_id, period, payment_method = null) {
+        const res = await supabaseAdmin
+            .from('bills')
+            .update({ 
+                paid: true, 
+                paid_at: new Date().toISOString(),
+                status: 'paid',
+                payment_method
+            })
+            .eq('apt_id', apt_id)
+            .eq('period', period)
+            .select();
+        return res;
+    }
+
+    async addLateFee(apt_id, period, late_fee) {
+        const res = await supabaseAdmin
+            .from('bills')
+            .update({ late_fee })
+            .eq('apt_id', apt_id)
+            .eq('period', period)
+            .select();
+        return res;
+    }
+
+    async applyDiscount(apt_id, period, discount) {
+        const res = await supabaseAdmin
+            .from('bills')
+            .update({ discount })
+            .eq('apt_id', apt_id)
+            .eq('period', period)
+            .select();
+        return res;
+    }
+
+    async getOverdueBills() {
+        const res = await supabaseAdmin
+            .from('bills')
+            .select('*')
+            .eq('status', 'overdue')
+            .order('due_date', { ascending: true });
+        return res;
+    }
+
+    async sendReminder(apt_id, period) {
+        const res = await supabaseAdmin
+            .from('bills')
+            .update({ 
+                last_reminder_sent: new Date().toISOString(),
+                reminder_count: supabaseAdmin.raw('reminder_count + 1')
+            })
+            .eq('apt_id', apt_id)
+            .eq('period', period)
+            .select();
+        return res;
+    }
+
     async accrue_fee(apt_id, total) {
         // Record a payment entry in the `payments` table. `period` should be provided by caller
         // If caller wants to aggregate totals, use DB-side RPC or a separate aggregation table.

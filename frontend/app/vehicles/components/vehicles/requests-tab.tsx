@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { Label } from "../ui/label"
+import { Textarea } from "../ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -38,15 +41,54 @@ type RequestDetailDialogProps = {
   request: (typeof requests)[0] | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAccept: (id: request_type) => void
-  onReject: (id: string) => void
+  onAccept: (request: request_type, monthlyFee: number) => void
+  onReject: (number: string, reason: string) => void
 }
 
 function RequestDetailDialog({ request, open, onOpenChange, onAccept, onReject }: RequestDetailDialogProps) { // tab yêu cầu 
+  const [monthlyFee, setMonthlyFee] = useState<string>('')
+  const [rejectionReason, setRejectionReason] = useState<string>('')
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  
+  // Default fees based on vehicle type
+  const defaultFees: Record<string, number> = {
+    car: 500000,
+    motorbike: 100000,
+    bike: 20000
+  }
+  
+  useEffect(() => {
+    if (request && open) {
+      const defaultFee = defaultFees[request.type] || 0
+      setMonthlyFee(defaultFee.toString())
+      setRejectionReason('')
+      setShowRejectForm(false)
+    }
+  }, [request, open])
+  
   if (!request) return null
 
+  const handleAcceptClick = () => {
+    const fee = parseFloat(monthlyFee) || defaultFees[request.type] || 0
+    onAccept(request, fee)
+  }
+  
+  const handleRejectClick = () => {
+    if (!showRejectForm) {
+      setShowRejectForm(true)
+    } else {
+      onReject(request.number, rejectionReason)
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      onOpenChange(isOpen)
+      if (!isOpen) {
+        setShowRejectForm(false)
+        setRejectionReason('')
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px] bg-white border-gray-200">
         <DialogHeader>
           <DialogTitle className="text-gray-900">Chi tiết yêu cầu</DialogTitle>
@@ -98,21 +140,78 @@ function RequestDetailDialog({ request, open, onOpenChange, onAccept, onReject }
               Chờ duyệt
             </Badge>
           </div>
+          
+          {!showRejectForm && (
+            <div>
+              <Label htmlFor="monthlyFee" className="text-sm font-medium text-gray-600">
+                Phí hàng tháng (VNĐ)
+              </Label>
+              <Input
+                id="monthlyFee"
+                type="number"
+                value={monthlyFee}
+                onChange={(e) => setMonthlyFee(e.target.value)}
+                placeholder="Nhập phí hàng tháng"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Phí mặc định: {defaultFees[request.type]?.toLocaleString('vi-VN')}đ
+              </p>
+            </div>
+          )}
+          
+          {showRejectForm && (
+            <div>
+              <Label htmlFor="rejectionReason" className="text-sm font-medium text-gray-600">
+                Lý do từ chối
+              </Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Nhập lý do từ chối yêu cầu..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onReject(request.number)}
-            className="gap-2 border-gray-300 hover:bg-gray-100"
-          >
-            <XCircle className="h-4 w-4" />
-            Từ chối
-          </Button>
-          <Button onClick={() => onAccept(request)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <CheckCircle2 className="h-4 w-4" />
-            Chấp nhận
-          </Button>
+          {!showRejectForm ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleRejectClick}
+                className="gap-2 border-gray-300 hover:bg-gray-100"
+              >
+                <XCircle className="h-4 w-4" />
+                Từ chối
+              </Button>
+              <Button onClick={handleAcceptClick} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                <CheckCircle2 className="h-4 w-4" />
+                Chấp nhận
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setShowRejectForm(false)}
+                className="gap-2 border-gray-300 hover:bg-gray-100"
+              >
+                Hủy
+              </Button>
+              <Button 
+                onClick={handleRejectClick} 
+                variant="destructive"
+                className="gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                Xác nhận từ chối
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -173,10 +272,9 @@ export function RequestsTab() {
     setDialogOpen(true)
   }
 
-  const handleAccept = async(request: request_type) => {
+  const handleAccept = async(request: request_type, monthlyFee: number) => {
     try {
-      const res = await api.accept_request(request);
-      await deleteRequests(request.number);
+      const res = await api.accept_request(request, monthlyFee);
       await fetchRequests();
     }
     catch(error) {
@@ -185,10 +283,10 @@ export function RequestsTab() {
     setDialogOpen(false)
   }
 
-  const handleReject = async(id: string) => {
-    console.log("[v0] Rejecting request:", id)
+  const handleReject = async(number: string, reason: string) => {
+    console.log("[v0] Rejecting request:", number, "Reason:", reason)
     try {
-      const res = await api.delete_request(id);
+      const res = await api.reject_request(number, reason);
       await fetchRequests();
     }
     catch(error) {
@@ -248,38 +346,66 @@ export function RequestsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentRequests.map((request) => (
-                  <TableRow key={request.number} className="border-gray-200 hover:bg-gray-50">
-
-                    <TableCell className="text-gray-700">{request.number}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="border-gray-300 text-gray-700">
-                        {vehicleTypeLabels[request.type]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-700">{request.owner}</TableCell>
-                    <TableCell className="text-gray-700">{request.apt_id}</TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {new Date(request.created_at).toLocaleDateString("vi-VN")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Chờ duyệt
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetails(request)}
-                        className="border-gray-300 hover:bg-gray-100"
-                      >
-                        Chi tiết
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {currentRequests.map((request) => {
+                  const getStatusBadge = (status?: string) => {
+                    switch(status) {
+                      case 'approved':
+                        return (
+                          <Badge className="bg-green-100 text-green-700 border-green-300">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Đã duyệt
+                          </Badge>
+                        );
+                      case 'rejected':
+                        return (
+                          <Badge className="bg-red-100 text-red-700 border-red-300">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Đã từ chối
+                          </Badge>
+                        );
+                      default:
+                        return (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Chờ duyệt
+                          </Badge>
+                        );
+                    }
+                  };
+                  
+                  return (
+                    <TableRow key={request.number} className="border-gray-200 hover:bg-gray-50">
+                      <TableCell className="text-gray-700">{request.number}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-gray-300 text-gray-700">
+                          {vehicleTypeLabels[request.type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-gray-700">{request.owner}</TableCell>
+                      <TableCell className="text-gray-700">{request.apt_id}</TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {new Date(request.created_at).toLocaleDateString("vi-VN")}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(request.status)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {request.status === 'pending' || !request.status ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(request)}
+                            className="border-gray-300 hover:bg-gray-100"
+                          >
+                            Chi tiết
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-gray-400">Đã xử lý</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             {currentRequests.length === 0 && (

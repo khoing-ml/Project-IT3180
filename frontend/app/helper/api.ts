@@ -83,16 +83,23 @@ export class ApiCall {
         number: string,
         type: string,
         color: string,
-        owner: string
+        owner: string,
+        created_by?: string
     ) {
         try {
-            const res = await axios.post("http://localhost:3001/api/vehicles/insert-request", {      
+            const requestData: any = {      
                 apt_id: apt_id,
                 owner: owner,
                 type: type,
                 number: number,
                 color: color
-            });
+            };
+            
+            if (created_by) {
+                requestData.created_by = created_by;
+            }
+            
+            const res = await axios.post("http://localhost:3001/api/vehicles/insert-request", requestData);
             return res.data;
         }
         catch(error) {
@@ -130,14 +137,25 @@ export class ApiCall {
         }
     } 
 
-    async accept_request(request: request_type) {
+    async accept_request(request: request_type, monthly_fee?: number) {
         try {
-            const res = await axios.post("http://localhost:3001/api/vehicles/insert", {
-                apt_id: request.apt_id,
-                owner: request.owner,
-                type: request.type,
+            const res = await axios.post("http://localhost:3001/api/vehicles/approve-request", {
                 number: request.number,
-                color: request.color
+                monthly_fee: monthly_fee
+            });
+            return res;
+        }
+        catch(error) {
+            console.log(error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async reject_request(number: string, rejection_reason?: string) {
+        try {
+            const res = await axios.post("http://localhost:3001/api/vehicles/reject-request", {
+                number: number,
+                rejection_reason: rejection_reason || 'No reason provided'
             });
             return res;
         }

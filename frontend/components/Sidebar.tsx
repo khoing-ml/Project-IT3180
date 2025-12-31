@@ -170,6 +170,27 @@ export default function Sidebar() {
                 )}
               </Link>
 
+              {/* Employee Management - Admin only */}
+              {hasPermission([UserRole.ADMIN]) && (
+                <Link
+                  href="/admin/employees"
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                    pathname === '/admin/employees'
+                      ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  {pathname === '/admin/employees' && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-400 rounded-r-full"></div>
+                  )}
+                  <UserCheck className={`w-5 h-5 ${pathname === '/admin/employees' ? 'text-white' : 'text-slate-400 group-hover:text-red-400'} transition-colors`} />
+                  <span className="text-sm font-medium flex-1 text-left">Quản lý nhân viên</span>
+                  {pathname === '/admin/employees' && (
+                    <ChevronRight className="w-4 h-4 opacity-70" />
+                  )}
+                </Link>
+              )}
+
               {/* Activity Logs */}
               <Link
                 href="/activity-logs"

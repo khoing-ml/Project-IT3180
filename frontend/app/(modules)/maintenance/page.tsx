@@ -1,312 +1,345 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Plus, AlertCircle, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { Plus, AlertCircle, CheckCircle, Clock, Wrench, ChevronRight } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  MaintenanceRequest,
+  MaintenanceStats,
+  getAllMaintenanceRequests,
+  createMaintenanceRequest,
+  getMaintenanceStatistics,
+  formatCost,
+  getStatusLabel,
+  getPriorityLabel,
+  getStatusColor,
+  getPriorityColor,
+} from "@/lib/maintenanceApi";
 
-interface MaintenanceRequest {
-  id: string;
-  apartment: string;
-  resident: string;
+interface FormData {
+  apt_id: string;
+  resident_name: string;
   phone: string;
-  issue: string;
-  status: "pending" | "in-progress" | "completed";
-  priority: "low" | "medium" | "high";
-  date: string;
-  assignedTo?: string;
-  cost?: number;
-  notes?: string;
+  issue_description: string;
 }
 
 export default function MaintenancePage() {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
+  const [stats, setStats] = useState<MaintenanceStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    apartment: "",
-    resident: "",
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  
+  const [formData, setFormData] = useState<FormData>({
+    apt_id: "",
+    resident_name: "",
     phone: "",
-    issue: "",
-    priority: "medium" as "low" | "medium" | "high"
+    issue_description: "",
   });
 
-  // Fetch data from backend
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const response = await fetch("http://localhost:3001/api/maintenance");
-        const data = await response.json();
-        setRequests(data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Lỗi tải dữ liệu:", error);
-        // Use mock data if backend is not available
-        setRequests([
-          {
-            id: "M001",
-            apartment: "A101",
-            resident: "Nguyễn Văn A",
-            phone: "0912345678",
-            issue: "Vòi nước bồn tắm bị rò rỉ",
-            status: "in-progress",
-            priority: "high",
-            date: "2025-12-19",
-            assignedTo: "Thợ Minh",
-            cost: 250000,
-            notes: "Thay van"
-          }
-        ]);
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [requestsData, statsData] = await Promise.all([
+        getAllMaintenanceRequests(),
+        getMaintenanceStatistics(),
+      ]);
+      setRequests(requestsData);
+      setStats(statsData);
+    } catch (error) {
+      console.error("Lỗi tải dữ liệu:", error);
+      alert("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchRequests();
-  }, []);
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleAddRequest = async () => {
-    if (!formData.apartment || !formData.resident || !formData.issue) {
+    if (!formData.apt_id || !formData.resident_name || !formData.issue_description) {
       alert("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
     try {
-      const response = await fetch("http://localhost:3001/api/maintenance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+      setSubmitting(true);
+      await createMaintenanceRequest(formData);
+      setFormData({
+        apt_id: "",
+        resident_name: "",
+        phone: "",
+        issue_description: "",
       });
-      const newRequest = await response.json();
-      setRequests([...requests, newRequest]);
-      setFormData({ apartment: "", resident: "", phone: "", issue: "", priority: "medium" });
       setShowForm(false);
+      await fetchData();
+      alert("Tạo yêu cầu thành công!");
     } catch (error) {
       console.error("Lỗi:", error);
-      alert("Không thể tạo yêu cầu. Backend có thể không chạy.");
+      alert("Không thể tạo yêu cầu. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "in-progress":
-        return "bg-blue-100 text-blue-800";
+        return <Clock className="w-5 h-5" />;
+      case "confirmed":
+      case "in_progress":
+        return <Wrench className="w-5 h-5" />;
       case "completed":
-        return "bg-green-100 text-green-800";
+        return <CheckCircle className="w-5 h-5" />;
       default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "low":
-        return "bg-blue-100 text-blue-800";
-      case "medium":
-        return "bg-orange-100 text-orange-800";
-      case "high":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+        return <AlertCircle className="w-5 h-5" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Sidebar />
       <div className="ml-72">
         <Header />
-        
+
         {/* Content */}
         <div className="p-6">
           {/* Back Button */}
           <div className="mb-6">
             <BackButton />
           </div>
-          
+
           {/* Header */}
-          <div className="bg-white shadow-lg rounded-lg">
-            <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="bg-white shadow-lg rounded-xl mb-6">
+            <div className="px-6 py-8 flex justify-between items-center">
               <div>
-                <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center gap-1">
-              <ArrowLeft className="w-4 h-4" /> Quay lại
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              Quản lý Sửa chữa
-            </h1>
-            <p className="text-gray-600 mt-1">Quản lý yêu cầu sửa chữa từ cư dân</p>
-          </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-6 rounded-lg transition flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" /> Yêu cầu mới
-          </button>
-        </div>
-      </div>
-
-      {/* Form Thêm yêu cầu */}
-      {showForm && (
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Tạo yêu cầu sửa chữa mới</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Số căn hộ"
-                value={formData.apartment}
-                onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
-                className="border border-gray-300 rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Tên cư dân"
-                value={formData.resident}
-                onChange={(e) => setFormData({ ...formData, resident: e.target.value })}
-                className="border border-gray-300 rounded px-3 py-2"
-              />
-              <input
-                type="tel"
-                placeholder="Số điện thoại"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="border border-gray-300 rounded px-3 py-2"
-              />
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-                className="border border-gray-300 rounded px-3 py-2"
-              >
-                <option value="low">Mức độ thấp</option>
-                <option value="medium">Mức độ trung bình</option>
-                <option value="high">Mức độ cao</option>
-              </select>
-              <textarea
-                placeholder="Mô tả vấn đề"
-                value={formData.issue}
-                onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
-                className="border border-gray-300 rounded px-3 py-2 md:col-span-2"
-                rows={3}
-              />
-            </div>
-            <div className="flex gap-3 mt-4">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                  <Wrench className="w-8 h-8 text-orange-500" />
+                  Yêu cầu Bảo trì
+                </h1>
+                <p className="text-gray-600 mt-2">Tạo và theo dõi yêu cầu bảo trì của bạn</p>
+              </div>
               <button
-                onClick={handleAddRequest}
-                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded transition"
+                onClick={() => setShowForm(!showForm)}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
               >
-                Tạo yêu cầu
-              </button>
-              <button
-                onClick={() => setShowForm(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded transition"
-              >
-                Hủy
+                <Plus className="w-5 h-5" /> Yêu cầu mới
               </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Danh sách yêu cầu */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
-            <p className="text-gray-600">Đang tải dữ liệu...</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">ID</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Căn hộ</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Cư dân</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Vấn đề</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Trạng thái</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Ưu tiên</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Ngày</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Chi phí</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((request) => (
-                    <tr key={request.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-800">{request.id}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{request.apartment}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        <div>{request.resident}</div>
-                        <div className="text-xs text-gray-500">{request.phone}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{request.issue}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(request.status)}`}>
-                          {request.status === "pending" && "Chờ xử lý"}
-                          {request.status === "in-progress" && "Đang xử lý"}
-                          {request.status === "completed" && "Hoàn thành"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(request.priority)}`}>
-                          {request.priority === "low" && "Thấp"}
-                          {request.priority === "medium" && "Trung bình"}
-                          {request.priority === "high" && "Cao"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{request.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+          {/* Statistics Cards */}
+          {stats && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-gray-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-gray-600 text-sm font-medium">Tổng yêu cầu</div>
+                    <div className="text-3xl font-bold text-gray-800 mt-1">{stats.total}</div>
+                  </div>
+                  <AlertCircle className="w-10 h-10 text-gray-400" />
+                </div>
+              </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-400">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-gray-600 text-sm">Tổng yêu cầu</div>
-                <div className="text-3xl font-bold text-gray-800">{requests.length}</div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-gray-600 text-sm font-medium">Chờ xác nhận</div>
+                    <div className="text-3xl font-bold text-yellow-600 mt-1">{stats.pending}</div>
+                  </div>
+                  <Clock className="w-10 h-10 text-yellow-400" />
+                </div>
               </div>
-              <TrendingUp className="w-8 h-8 text-gray-400" />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-400">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-gray-600 text-sm">Chờ xử lý</div>
-                <div className="text-3xl font-bold text-yellow-600">{requests.filter(r => r.status === "pending").length}</div>
+
+              <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-gray-600 text-sm font-medium">Đang xử lý</div>
+                    <div className="text-3xl font-bold text-blue-600 mt-1">
+                      {stats.confirmed + stats.in_progress}
+                    </div>
+                  </div>
+                  <Wrench className="w-10 h-10 text-blue-400" />
+                </div>
               </div>
-              <AlertCircle className="w-8 h-8 text-yellow-400" />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-400">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-gray-600 text-sm">Đang xử lý</div>
-                <div className="text-3xl font-bold text-blue-600">{requests.filter(r => r.status === "in-progress").length}</div>
+
+              <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-gray-600 text-sm font-medium">Hoàn thành</div>
+                    <div className="text-3xl font-bold text-green-600 mt-1">{stats.completed}</div>
+                  </div>
+                  <CheckCircle className="w-10 h-10 text-green-400" />
+                </div>
               </div>
-              <Clock className="w-8 h-8 text-blue-400" />
             </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-400">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-gray-600 text-sm">Hoàn thành</div>
-                <div className="text-3xl font-bold text-green-600">{requests.filter(r => r.status === "completed").length}</div>
+          )}
+
+          {/* Form Thêm yêu cầu */}
+          {showForm && (
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <Plus className="w-6 h-6 text-orange-500" />
+                Tạo yêu cầu bảo trì mới
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số căn hộ <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: A101"
+                    value={formData.apt_id}
+                    onChange={(e) => setFormData({ ...formData, apt_id: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tên cư dân <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Họ và tên"
+                    value={formData.resident_name}
+                    onChange={(e) => setFormData({ ...formData, resident_name: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="0912345678"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mô tả vấn đề <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="Mô tả chi tiết vấn đề cần bảo trì..."
+                    value={formData.issue_description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, issue_description: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    rows={4}
+                  />
+                </div>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-400" />
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleAddRequest}
+                  disabled={submitting}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                  {submitting ? "Đang tạo..." : "Tạo yêu cầu"}
+                </button>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2.5 px-6 rounded-lg transition-all"
+                >
+                  Hủy
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* Danh sách yêu cầu */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
+              <h2 className="text-xl font-bold text-white">Danh sách yêu cầu của bạn</h2>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+                <p className="text-gray-600 mt-4">Đang tải dữ liệu...</p>
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="p-12 text-center">
+                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Chưa có yêu cầu bảo trì nào.</p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="mt-4 text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  Tạo yêu cầu đầu tiên →
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {requests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedRequest(request)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-lg font-bold text-gray-800">
+                            {request.apt_id}
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                              request.status
+                            )}`}
+                          >
+                            {getStatusIcon(request.status)}
+                            <span className="ml-1">{getStatusLabel(request.status)}</span>
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(
+                              request.priority
+                            )}`}
+                          >
+                            {getPriorityLabel(request.priority)}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 mb-2">{request.issue_description}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span>📅 {new Date(request.created_at).toLocaleDateString("vi-VN")}</span>
+                          {request.estimated_cost && (
+                            <span>💰 Dự kiến: {formatCost(request.estimated_cost)}</span>
+                          )}
+                          {request.actual_cost && (
+                            <span>💵 Thực tế: {formatCost(request.actual_cost)}</span>
+                          )}
+                        </div>
+                        {request.notes && (
+                          <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                            <p className="text-sm text-blue-800">
+                              <strong>Ghi chú:</strong> {request.notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
   );
 }
-

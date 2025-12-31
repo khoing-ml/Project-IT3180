@@ -83,6 +83,51 @@ export interface BuildingFinancialSummary {
   debt_ratio: string;
 }
 
+export interface IncomeByPeriod {
+  period: string;
+  total_income: number;
+  total_charges?: number;
+  total_debt?: number;
+  payment_count: number;
+  bill_count?: number;
+}
+
+export interface FeeBreakdown {
+  electric: number;
+  water: number;
+  service: number;
+  vehicles: number;
+  total: number;
+}
+
+export interface PeriodComparison {
+  period1: PeriodSummary;
+  period2: PeriodSummary;
+  comparison: {
+    income_change: number;
+    income_change_percent: string;
+    charges_change: number;
+    debt_change: number;
+  };
+}
+
+export interface PeriodSummary {
+  period: string;
+  total_income: number;
+  total_charges: number;
+  total_debt: number;
+  collection_rate: string;
+  bill_count: number;
+  payment_count: number;
+}
+
+export interface CollectionRate {
+  period: string;
+  collection_rate: number;
+  total_income: number;
+  total_charges: number;
+}
+
 /* =======================
    Financial API
 ======================= */
@@ -144,5 +189,43 @@ export const financialAPI = {
     return apiRequest<{
       data: BuildingFinancialSummary;
     }>('/payments/building-summary');
+  },
+
+  /** GET /api/payments/income-by-period */
+  getIncomeByPeriod: async (startPeriod: string, endPeriod: string) => {
+    return apiRequest<{
+      data: IncomeByPeriod[];
+    }>(`/payments/income-by-period?start_period=${startPeriod}&end_period=${endPeriod}`);
+  },
+
+  /** GET /api/payments/fee-breakdown */
+  getFeeBreakdown: async (period?: string) => {
+    const url = period 
+      ? `/payments/fee-breakdown?period=${period}`
+      : '/payments/fee-breakdown';
+    return apiRequest<{
+      data: FeeBreakdown;
+    }>(url);
+  },
+
+  /** GET /api/payments/compare-periods */
+  comparePeriodsFinancial: async (period1: string, period2: string) => {
+    return apiRequest<{
+      data: PeriodComparison;
+    }>(`/payments/compare-periods?period1=${period1}&period2=${period2}`);
+  },
+
+  /** GET /api/payments/collection-rate */
+  getCollectionRateByPeriod: async (startPeriod: string, endPeriod: string) => {
+    return apiRequest<{
+      data: CollectionRate[];
+    }>(`/payments/collection-rate?start_period=${startPeriod}&end_period=${endPeriod}`);
+  },
+
+  /** GET /api/payments/period-summary/:period */
+  getPeriodSummary: async (period: string) => {
+    return apiRequest<{
+      data: PeriodSummary;
+    }>(`/payments/period-summary/${period}`);
   },
 };

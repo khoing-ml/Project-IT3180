@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
-import { FileText, Receipt, Search } from "lucide-react"
+import { FileText, Receipt, Search, Bell, Download, Filter as FilterIcon, TrendingUp } from "lucide-react"
 import { BillDetailDialog } from "./bill-detail-dialog"
 import { EditBillDialog } from "./edit-bill-dialog"
-import type { Bill } from "../types"
+import type { Bill, PaymentStats, BillAnalytics } from "../types"
 import Header from "../../../components/Header";
 import Sidebar from "../../../components/Sidebar";
 import BackButton from "../../../components/BackButton";
@@ -15,6 +15,12 @@ import SubmitBillsModal from "../../../components/SubmitBillsModal";
 import { billsAPI } from '@/lib/api';
 import { Input } from "../components/ui/input";
 import { ApiCall } from "@/app/helper/api";
+import { BillStatsCards } from "../components/BillStatsCards";
+import { BillAnalyticsChart } from "../components/BillAnalyticsChart";
+import { QuickActionsDialog } from "../components/QuickActionsDialog";
+import { Badge } from "../components/ui/badge";
+import { billsEnhancedAPI } from "@/lib/billsEnhancedApi";
+import { supabase } from "@/lib/supabase";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -42,10 +48,10 @@ export function AdminBillsView() {
   const api = new ApiCall();
 
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1)
   const [currentBills, setCurrentBills] = useState<Bill[]>([]);
@@ -53,13 +59,20 @@ export function AdminBillsView() {
   const [errorFetchBill, setErrorFetchBills] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(0);
 
-  const[totalToCollect, setTotalToCollect] = useState(0);
-  const[totalCollected, setTotalCollected] = useState(0);
+  const [totalToCollect, setTotalToCollect] = useState(0);
+  const [totalCollected, setTotalCollected] = useState(0);
 
   const [searchApartment, setSearchApartment] = useState("");
   const [searchOwner, setSearchOwner] = useState("");
   const [filterPeriod, setFilterPeriod] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
+  
+  // Analytics state
+  const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
+  const [billAnalytics, setBillAnalytics] = useState<BillAnalytics[]>([]);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   const filteredBills = mockAdminBills.filter((bill) => {
     const matchApartment = bill.apt_id.toLowerCase().includes(searchApartment.toLowerCase())
@@ -74,40 +87,44 @@ export function AdminBillsView() {
     if(searchApartment) filter.apt_id = searchApartment;
     if(searchOwner) filter.owner = searchOwner;
     if(filterPeriod) filter.period = filterPeriod;
+    if(filterStatus && filterStatus !== 'all') filter.status = filterStatus;
+    
     setLoadingBills(true);
     setErrorFetchBills(null);
     try {
       const res = await api.query_bill_with_filter(filter, currentPage, itemsPerPage);
       const bills = res.data;
-      // If a period filter is active, rely on server summary for totals (accurate across all apartments)
+      
+      // Calculate totals from bills data
+      let totalDue = 0;  // Tổng cần thu (chưa thu)
+      let totalPaid = 0; // Tổng đã thu
+      
+      for(const bill of bills) {
+        const billTotal = Number(bill.electric || 0) + Number(bill.water || 0) + 
+                         Number(bill.pre_debt || 0) + Number(bill.vehicles || 0) + 
+                         Number(bill.service || 0);
+        
+        if (bill.paid) {
+          totalPaid += billTotal;
+        } else {
+          totalDue += billTotal;
+        }
+      }
+      
+      setTotalToCollect(totalDue);
+      setTotalCollected(totalPaid);
+      
+      // If period is selected, try to get more accurate totals from backend
       if (filterPeriod) {
         try {
           const summary = await billsAPI.getPeriodSummary(filterPeriod);
-          setTotalToCollect(Number(summary.total_due || 0));
-          setTotalCollected(Number(summary.total_received || 0));
+          if (summary.total_due !== undefined) setTotalToCollect(Number(summary.total_due || 0));
+          if (summary.total_received !== undefined) setTotalCollected(Number(summary.total_received || 0));
         } catch (e) {
-          console.warn('Failed to fetch period summary', e);
-          // fallback: compute totals from current page only
-          let total = 0;
-          for(const bill of bills) {
-            total = total + Number(bill.electric || 0) + Number(bill.water || 0) + Number(bill.pre_debt || 0) + Number(bill.vehicles || 0) + Number(bill.service || 0);
-          }
-          setTotalToCollect(total);
-        }
-      } else {
-        // No period selected: compute totals from current page (or set 0)
-        let total = 0;
-        for(const bill of bills) {
-          total = total + Number(bill.electric || 0) + Number(bill.water || 0) + Number(bill.pre_debt || 0) + Number(bill.vehicles || 0) + Number(bill.service || 0);
-        }
-        setTotalToCollect(total);
-        try {
-          const collected = await api.get_total_collected();
-          setTotalCollected(collected)
-        } catch (e) {
-          console.warn('Failed to fetch overall collected', e);
+          console.warn('Failed to fetch period summary, using calculated totals', e);
         }
       }
+      
       setCurrentBills(bills);
       setTotalPages(res.total_pages);
     }
@@ -118,12 +135,53 @@ export function AdminBillsView() {
       setLoadingBills(false);
     }
   }
+
+  const fetchAnalytics = async() => {
+    setLoadingStats(true);
+    try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      
+      // Fetch payment stats
+      const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/bills/payment-stats${filterPeriod ? `?period=${filterPeriod}` : ''}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      const statsData = await statsResponse.json();
+      if (statsData.success) {
+        setPaymentStats(statsData.data);
+      }
+
+      // Fetch analytics data
+      const analyticsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/bills/analytics`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      const analyticsData = await analyticsResponse.json();
+      if (analyticsData.success) {
+        setBillAnalytics(analyticsData.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
  
 
 
   useEffect(() => {
     fetchBills();
-  }, [currentPage, totalPages, searchApartment, searchOwner, totalCollected, totalToCollect, filterPeriod]);
+  }, [currentPage, totalPages, searchApartment, searchOwner, totalCollected, totalToCollect, filterPeriod, filterStatus]);
+
+  useEffect(() => {
+    if (showAnalytics) {
+      fetchAnalytics();
+    }
+  }, [showAnalytics, filterPeriod]);
 
   // load available periods
   useEffect(() => {
@@ -185,8 +243,50 @@ export function AdminBillsView() {
     }
   }
 
+  // Quick Actions Handlers
+  const handleMarkPaid = async (aptId: string, period: string, paymentMethod: string) => {
+    try {
+      await billsEnhancedAPI.markBillAsPaid(aptId, period, paymentMethod);
+      await fetchBills();
+      if (showAnalytics) await fetchAnalytics();
+    } catch (error) {
+      console.error('Failed to mark bill as paid:', error);
+      throw error;
+    }
+  };
+
+  const handleAddLateFee = async (aptId: string, period: string, lateFee: number) => {
+    try {
+      await billsEnhancedAPI.addLateFee(aptId, period, lateFee);
+      await fetchBills();
+    } catch (error) {
+      console.error('Failed to add late fee:', error);
+      throw error;
+    }
+  };
+
+  const handleApplyDiscount = async (aptId: string, period: string, discount: number) => {
+    try {
+      await billsEnhancedAPI.applyDiscount(aptId, period, discount);
+      await fetchBills();
+    } catch (error) {
+      console.error('Failed to apply discount:', error);
+      throw error;
+    }
+  };
+
+  const handleSendReminder = async (aptId: string, period: string) => {
+    try {
+      await billsEnhancedAPI.sendReminder(aptId, period);
+      await fetchBills();
+    } catch (error) {
+      console.error('Failed to send reminder:', error);
+      throw error;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Sidebar />
       <div className="ml-72 p-6">
         <Header />
@@ -195,29 +295,45 @@ export function AdminBillsView() {
           <div className="flex items-center justify-between">
             <BackButton />
             <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => setShowAnalytics(!showAnalytics)} 
+                variant="outline"
+                className="gap-2 border-gray-300 hover:bg-gray-50"
+              >
+                <TrendingUp className="h-4 w-4" />
+                {showAnalytics ? 'Ẩn thống kê' : 'Xem thống kê'}
+              </Button>
               <a
                 href="/admin/bills-setup"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex items-center gap-2 shadow-md"
               >
                 ⚙️ Cấu hình giá dịch vụ
               </a>
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition font-semibold flex items-center gap-2 shadow-md"
               >
                 🚰 Gửi số liệu
               </button>
             </div>
             <SubmitBillsModal isOpen={showSubmitModal} onClose={() => setShowSubmitModal(false)} period={filterPeriod} />
           </div>
+
+          {/* Analytics Section */}
+          {showAnalytics && (
+            <div className="space-y-6">
+              <BillStatsCards stats={paymentStats} loading={loadingStats} />
+              {billAnalytics.length > 0 && <BillAnalyticsChart data={billAnalytics} />}
+            </div>
+          )}
           
           <div className="space-y-6">
     
       {/* Overview Cards */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-green-500/20 bg-gradient-to-br from-green-600 to-green-700 text-white">
+        <Card className="border-0 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg font-medium">
               <FileText className="h-5 w-5" />
               Tổng cần thu kỳ này
             </CardTitle>
@@ -226,9 +342,9 @@ export function AdminBillsView() {
             <div className="text-4xl font-bold">{formatCurrency(totalToCollect)}</div>
           </CardContent>
         </Card>
-        <Card className="border-purple-500/20 bg-gradient-to-br from-purple-600 to-purple-700 text-white">
+        <Card className="border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg font-medium">
               <Receipt className="h-5 w-5" />
               Tổng đã thu kỳ này
             </CardTitle>
@@ -240,10 +356,21 @@ export function AdminBillsView() {
       </div>
 
       {/* Bills Table */}
-      <Card className="border border-gray-200 bg-white shadow-sm">
+      <Card className="border-0 bg-white shadow-lg">
         <CardHeader>
-          <CardTitle className="text-gray-900">Danh sách hóa đơn các căn hộ</CardTitle>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-md">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-gray-900 text-xl">Danh sách hóa đơn các căn hộ</CardTitle>
+            </div>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
               <Input
@@ -286,6 +413,19 @@ export function AdminBillsView() {
                   </button>
                 )}
               </div>
+              <div className="flex items-center gap-2">
+                <FilterIcon className="h-4 w-4 text-gray-600" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                  className="px-3 py-2 border border-gray-300 rounded text-gray-900"
+                >
+                  <option value="all">Tất cả</option>
+                  <option value="paid">Đã thu</option>
+                  <option value="unpaid">Chưa thu</option>
+                  <option value="overdue">Quá hạn</option>
+                </select>
+              </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -296,33 +436,57 @@ export function AdminBillsView() {
                   <TableHead className="font-semibold text-gray-700">Chủ sở hữu</TableHead>
                   <TableHead className="font-semibold text-gray-700">Trạng thái</TableHead>
                   <TableHead className="font-semibold text-gray-700">Kỳ</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Hạn thanh toán</TableHead>
                   <TableHead className="text-right font-semibold text-gray-700">Tổng số tiền</TableHead>
                   <TableHead className="text-center font-semibold text-gray-700">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentBills.map((bill) => (
-                <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-200 bg-white hover:bg-gray-50">
-                  <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
-                  <TableCell className="text-gray-900">{bill.owner}</TableCell>
-                  <TableCell className="text-sm">
-                    {bill.paid ? (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">Đã thu</span>
-                    ) : (
-                      <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">Chưa thu</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-gray-700 text-sm">{bill.period ?? '-'}</TableCell>
-                  <TableCell className="text-right font-semibold text-gray-900">
-                    {formatCurrency(bill.electric + bill.pre_debt + bill.water + bill.service + bill.vehicles)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="outline" size="sm" onClick={() => handleViewDetail(bill)}>
-                      Xem chi tiết
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {currentBills.map((bill) => {
+                const isOverdue = bill.due_date && new Date(bill.due_date) < new Date() && !bill.paid;
+                const statusBadge = bill.paid ? (
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Đã thu</Badge>
+                ) : isOverdue ? (
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Quá hạn</Badge>
+                ) : (
+                  <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Chưa thu</Badge>
+                );
+
+                return (
+                  <TableRow key={`${bill.apt_id}-${bill.period || 'none'}`} className="border-b border-gray-200 bg-white hover:bg-gray-50">
+                    <TableCell className="font-medium text-gray-900">{bill.apt_id}</TableCell>
+                    <TableCell className="text-gray-900">{bill.owner}</TableCell>
+                    <TableCell>{statusBadge}</TableCell>
+                    <TableCell className="text-gray-700 text-sm">{bill.period ?? '-'}</TableCell>
+                    <TableCell className="text-gray-700 text-sm">
+                      {bill.due_date ? new Date(bill.due_date).toLocaleDateString('vi-VN') : '-'}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-gray-900">
+                      {formatCurrency(bill.electric + bill.pre_debt + bill.water + bill.service + bill.vehicles)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex gap-2 justify-center">
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetail(bill)}>
+                          Xem chi tiết
+                        </Button>
+                        {!bill.paid && (
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedBill(bill);
+                              setIsQuickActionsOpen(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Hành động
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
 
@@ -372,6 +536,17 @@ export function AdminBillsView() {
           if (!open) setIsDetailOpen(true)
         }}
         onSave={handleSaveEdit}
+      />
+
+      {/* Quick Actions Dialog */}
+      <QuickActionsDialog
+        isOpen={isQuickActionsOpen}
+        onOpenChange={setIsQuickActionsOpen}
+        bill={selectedBill}
+        onMarkPaid={handleMarkPaid}
+        onAddLateFee={handleAddLateFee}
+        onApplyDiscount={handleApplyDiscount}
+        onSendReminder={handleSendReminder}
       />
     </div>
           </div>

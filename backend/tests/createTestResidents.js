@@ -13,10 +13,10 @@ async function createResidents() {
 
       async function createTestResidents() {
         const residents = [
-          { email: 'nguyenvan.a101@bluemoon.test', password: 'Test@1234', username: 'a101', full_name: 'Nguyễn Văn A', apartment_number: 'A101' },
-          { email: 'tranthi.a102@bluemoon.test', password: 'Test@1234', username: 'a102', full_name: 'Trần Thị B', apartment_number: 'A102' },
-          { email: 'lehong.b201@bluemoon.test', password: 'Test@1234', username: 'b201', full_name: 'Lê Hồng C', apartment_number: 'B201' },
-          { email: 'phamvan.b202@bluemoon.test', password: 'Test@1234', username: 'b202', full_name: 'Phạm Văn D', apartment_number: 'B202' }
+          { email: 'nguyenvan.a101@bluemoon.test', password: 'Test@1234', username: 'a101', full_name: 'Nguyễn Văn A', apartment_number: 'A101', year_of_birth: 1985, hometown: 'Hà Nội', gender: 'male' },
+          { email: 'tranthi.a102@bluemoon.test', password: 'Test@1234', username: 'a102', full_name: 'Trần Thị B', apartment_number: 'A102', year_of_birth: 1990, hometown: 'Hải Phòng', gender: 'female' },
+          { email: 'lehong.b201@bluemoon.test', password: 'Test@1234', username: 'b201', full_name: 'Lê Hồng C', apartment_number: 'B201', year_of_birth: 1978, hometown: 'Đà Nẵng', gender: 'male' },
+          { email: 'phamvan.b202@bluemoon.test', password: 'Test@1234', username: 'b202', full_name: 'Phạm Văn D', apartment_number: 'B202', year_of_birth: 1982, hometown: 'Hồ Chí Minh', gender: 'male' }
         ];
 
         if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -90,6 +90,31 @@ async function createResidents() {
               const { error: insertAptErr } = await supabaseAdmin.from('apartments').insert([aptData]);
               if (insertAptErr) console.error(`Apartment insert error for ${r.apartment_number}:`, insertAptErr.message || insertAptErr);
               else console.log(`Inserted apartment ${r.apartment_number}`);
+            }
+
+            // Ensure a residents row exists for this profile (optional)
+            try {
+              const { data: existingResidents = [], error: resErr } = await supabaseAdmin.from('residents').select('*').eq('email', r.email).eq('apt_id', r.apartment_number);
+              if (resErr) console.error('Failed to check existing residents:', resErr.message || resErr);
+              if (!existingResidents || existingResidents.length === 0) {
+                const residentPayload = {
+                  apt_id: r.apartment_number,
+                  full_name: r.full_name,
+                  email: r.email,
+                  is_owner: true,
+                  year_of_birth: r.year_of_birth || null,
+                  hometown: r.hometown || null,
+                  gender: r.gender || null,
+                  created_at: new Date().toISOString()
+                };
+                const { error: insertResErr } = await supabaseAdmin.from('residents').insert([residentPayload]);
+                if (insertResErr) console.error(`Resident insert error for ${r.email}:`, insertResErr.message || insertResErr);
+                else console.log(`Inserted resident for ${r.email}`);
+              } else {
+                console.log(`Resident exists for ${r.email} — no change.`);
+              }
+            } catch (e) {
+              console.error('Error ensuring resident row:', e.message || e);
             }
 
           } catch (err) {

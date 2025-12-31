@@ -11,6 +11,7 @@ const accessCardRoutes = require('./accessCardRoutes');
 const activityLogRoutes = require('./activityLogRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const residentRoutes = require('./residentRoutes');
+const employeeRoutes = require('./employeeRoutes');
 
 /**
  * @swagger
@@ -78,6 +79,7 @@ router.use('/visitors', visitorRoutes);
 router.use('/access-cards', accessCardRoutes);
 router.use('/activity-logs', activityLogRoutes);
 router.use('/residents', residentRoutes);
+router.use('/employees', employeeRoutes);
 
 /**
  * @swagger

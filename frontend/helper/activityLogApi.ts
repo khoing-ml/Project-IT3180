@@ -1,12 +1,14 @@
 import { ActivityLog, ActivityLogFilters, ActivityLogResponse, ActivityStats } from "@/types/activityLog";
+import { supabase } from "@/lib/supabase";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 /**
- * Get authentication headers with token from localStorage
+ * Get authentication headers with token from Supabase
  */
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || null;
   return {
     "Content-Type": "application/json",
     Authorization: token ? `Bearer ${token}` : "",
@@ -31,7 +33,7 @@ export const getActivityLogs = async (
     `${API_BASE_URL}/activity-logs?${queryParams.toString()}`,
     {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     }
   );
 
@@ -61,7 +63,7 @@ export const getMyActivityLogs = async (
     `${API_BASE_URL}/activity-logs/me?${queryParams.toString()}`,
     {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     }
   );
 
@@ -81,7 +83,7 @@ export const getActivityLogById = async (id: string): Promise<ActivityLog> => {
     `${API_BASE_URL}/activity-logs/${id}`,
     {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     }
   );
 
@@ -108,7 +110,7 @@ export const getActivityStats = async (
     `${API_BASE_URL}/activity-logs/stats?${queryParams.toString()}`,
     {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     }
   );
 
@@ -131,7 +133,7 @@ export const createActivityLog = async (logData: {
 }): Promise<ActivityLog> => {
   const response = await fetch(`${API_BASE_URL}/activity-logs`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(logData),
   });
 
@@ -152,7 +154,7 @@ export const cleanupOldActivityLogs = async (
     `${API_BASE_URL}/activity-logs/cleanup?daysToKeep=${daysToKeep}`,
     {
       method: "DELETE",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     }
   );
 

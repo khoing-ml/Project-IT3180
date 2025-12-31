@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react";
 import { accessCardAPI, userAPI } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { AccessCard } from "@/types/access";
-import { AlertCircle, Plus, Eye, Trash2, Edit, Lock, Unlock } from "lucide-react";
+import { AccessCard, CardAccessLog, CardHistory, CardFee, CardStatistics } from "@/types/access";
+import { AlertCircle, Plus, Eye, Trash2, Lock, Unlock, BarChart3, History, DollarSign, Activity, RefreshCw } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
@@ -15,12 +15,25 @@ export default function AccessControlPage() {
   const router = useRouter();
   const [cards, setCards] = useState<AccessCard[]>([]);
   const [residents, setResidents] = useState<any[]>([]);
+  const [statistics, setStatistics] = useState<CardStatistics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState<AccessCard | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'lost' | 'blocked'>('all');
+  
+  // Detail modal tabs
+  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'logs' | 'fees'>('info');
+  const [cardHistory, setCardHistory] = useState<CardHistory[]>([]);
+  const [accessLogs, setAccessLogs] = useState<CardAccessLog[]>([]);
+  const [cardFees, setCardFees] = useState<CardFee[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  // Renew modal
+  const [showRenewModal, setShowRenewModal] = useState(false);
+  const [renewData, setRenewData] = useState({ expiry_date: '', notes: '' });
+  
   const [formData, setFormData] = useState({
     resident_id: '',
     card_number: '',
@@ -44,24 +57,44 @@ export default function AccessControlPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [cardsData, residentsData] = await Promise.all([
+      const [cardsData, residentsData, statsData] = await Promise.all([
         accessCardAPI.getAll(),
-        userAPI.getAll()
+        userAPI.getAll(),
+        accessCardAPI.getStatistics().catch(() => null)
       ]);
       setCards(cardsData);
-      setResidents(residentsData.data || []);
+      setResidents(residentsData.users || []);
+      setStatistics(statsData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCardDetails = async (cardId: string) => {
+    setLoadingDetails(true);
+    try {
+      const [history, logs, fees] = await Promise.all([
+        accessCardAPI.getHistory(cardId).catch(() => []),
+        accessCardAPI.getAccessLogs(cardId, 20, 0).then(res => res?.data || []).catch(() => []),
+        accessCardAPI.getFees(cardId).catch(() => [])
+      ]);
+      setCardHistory(history || []);
+      setAccessLogs(logs || []);
+      setCardFees(fees || []);
+    } catch (err) {
+      console.error('Lỗi khi tải chi tiết:', err);
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
   const handleCreateCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.resident_id || !formData.card_number) {
-      setError('Resident and Card Number are required');
+      setError('Vui lòng nhập đầy đủ cư dân và số thẻ');
       return;
     }
 
@@ -77,7 +110,6 @@ export default function AccessControlPage() {
 
       await accessCardAPI.create(cardDataToSend);
       
-      // Reset form
       setFormData({
         resident_id: '',
         card_number: '',
@@ -87,27 +119,50 @@ export default function AccessControlPage() {
       });
       setShowModal(false);
       await fetchData();
+      alert('Tạo thẻ mới thành công!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create card');
+      setError(err instanceof Error ? err.message : 'Không thể tạo thẻ');
     }
   };
 
   const handleStatusUpdate = async (cardId: string, newStatus: 'active' | 'inactive' | 'lost' | 'blocked') => {
+    const statusText = { active: 'kích hoạt', inactive: 'vô hiệu hóa', lost: 'đánh dấu mất', blocked: 'khóa' };
+    if (!confirm(`Bạn có chắc muốn ${statusText[newStatus]} thẻ này?`)) return;
+    
     try {
       await accessCardAPI.updateStatus(cardId, newStatus);
       await fetchData();
+      alert('Cập nhật trạng thái thành công!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update card status');
+      setError(err instanceof Error ? err.message : 'Không thể cập nhật trạng thái');
+    }
+  };
+
+  const handleRenewCard = async () => {
+    if (!selectedCard || !renewData.expiry_date) {
+      setError('Vui lòng nhập ngày hết hạn mới');
+      return;
+    }
+
+    try {
+      await accessCardAPI.renew(selectedCard.id, renewData.expiry_date, renewData.notes);
+      setShowRenewModal(false);
+      setRenewData({ expiry_date: '', notes: '' });
+      await fetchData();
+      alert('Gia hạn thẻ thành công!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể gia hạn thẻ');
     }
   };
 
   const handleDelete = async (cardId: string) => {
-    if (!confirm('Are you sure you want to delete this card record?')) return;
+    if (!confirm('Bạn có chắc muốn xóa thẻ này? Hành động này không thể hoàn tác!')) return;
     try {
       await accessCardAPI.delete(cardId);
       await fetchData();
+      alert('Xóa thẻ thành công!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete card');
+      setError(err instanceof Error ? err.message : 'Không thể xóa thẻ');
     }
   };
 
@@ -118,28 +173,90 @@ export default function AccessControlPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'inactive':
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-      case 'lost':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
-      case 'blocked':
-        return 'bg-red-50 text-red-700 border-red-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'active': return 'bg-green-50 text-green-700 border-green-200';
+      case 'inactive': return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'lost': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'blocked': return 'bg-red-50 text-red-700 border-red-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Hoạt động';
+      case 'inactive': return 'Không hoạt động';
+      case 'lost': return 'Đã mất';
+      case 'blocked': return 'Bị khóa';
+      default: return status;
+    }
+  };
+
+  const getCardTypeText = (type: string) => {
+    switch (type) {
+      case 'resident': return 'Cư dân';
+      case 'guest': return 'Khách';
+      case 'staff': return 'Nhân viên';
+      default: return type;
+    }
+  };
+
+  const getAccessTypeText = (type: string) => type === 'entry' ? 'Vào' : 'Ra';
+  
+  const getAccessStatusText = (status: string) => {
+    switch (status) {
+      case 'success': return 'Thành công';
+      case 'denied': return 'Bị từ chối';
+      case 'expired': return 'Hết hạn';
+      case 'blocked': return 'Bị khóa';
+      default: return status;
+    }
+  };
+
+  const getActionTypeText = (action: string) => {
+    switch (action) {
+      case 'created': return 'Tạo thẻ';
+      case 'activated': return 'Kích hoạt';
+      case 'deactivated': return 'Vô hiệu hóa';
+      case 'lost_reported': return 'Báo mất';
+      case 'blocked': return 'Khóa thẻ';
+      case 'renewed': return 'Gia hạn';
+      case 'expired': return 'Hết hạn';
+      case 'damaged_reported': return 'Báo hỏng';
+      case 'replaced': return 'Thay thế';
+      default: return action;
+    }
+  };
+
+  const getFeeTypeText = (type: string) => {
+    switch (type) {
+      case 'lost': return 'Phí mất thẻ';
+      case 'damaged': return 'Phí thẻ hỏng';
+      case 'late_return': return 'Phí trả muộn';
+      case 'replacement': return 'Phí thay thẻ';
+      case 'other': return 'Phí khác';
+      default: return type;
+    }
+  };
+
+  const getFeeStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Chờ thanh toán';
+      case 'paid': return 'Đã thanh toán';
+      case 'waived': return 'Đã miễn giảm';
+      default: return status;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active':
-        return <Unlock className="w-5 h-5 text-green-500" />;
-      case 'blocked':
-        return <Lock className="w-5 h-5 text-red-500" />;
-      default:
-        return <AlertCircle className="w-5 h-5 text-gray-500" />;
+      case 'active': return <Unlock className="w-5 h-5 text-green-500" />;
+      case 'blocked': return <Lock className="w-5 h-5 text-red-500" />;
+      default: return <AlertCircle className="w-5 h-5 text-gray-500" />;
     }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
   if (authLoading || isLoading) {
@@ -147,7 +264,7 @@ export default function AccessControlPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Đang tải...</p>
         </div>
       </div>
     );
@@ -159,7 +276,6 @@ export default function AccessControlPage() {
       <div className="ml-72 p-8">
         <Header />
         <div className="max-w-7xl mx-auto">
-          {/* Back Button */}
           <div className="mb-6">
             <BackButton />
           </div>
@@ -167,204 +283,258 @@ export default function AccessControlPage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Access Control</h1>
-              <p className="text-gray-600">Manage resident access cards</p>
-          </div>
-          <button
-            onClick={() => {
-              setIsEditMode(false);
-              setFormData({
-                resident_id: '',
-                card_number: '',
-                card_type: 'resident',
-                expiry_date: '',
-                notes: ''
-              });
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-shadow font-medium"
-          >
-            <Plus className="w-5 h-5" />
-            Issue New Card
-          </button>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {(['all', 'active', 'inactive', 'lost', 'blocked'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === f
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-500'
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-              <span className="ml-2 text-sm">
-                ({filteredCards.length})
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Cards Table */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {filteredCards.length === 0 ? (
-            <div className="p-12 text-center">
-              <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No cards found</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Quản Lý Thẻ Cư Dân</h1>
+              <p className="text-gray-600">Quản lý và kiểm soát thẻ ra vào của cư dân</p>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold">Card Number</th>
-                    <th className="px-6 py-4 text-left font-semibold">Resident</th>
-                    <th className="px-6 py-4 text-left font-semibold">Type</th>
-                    <th className="px-6 py-4 text-left font-semibold">Status</th>
-                    <th className="px-6 py-4 text-left font-semibold">Issued Date</th>
-                    <th className="px-6 py-4 text-left font-semibold">Expiry</th>
-                    <th className="px-6 py-4 text-left font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredCards.map((card) => (
-                    <tr key={card.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-mono font-semibold text-gray-900">{card.card_number}</td>
-                      <td className="px-6 py-4">
-                        <div className="text-gray-900">{card.resident?.full_name}</div>
-                        <div className="text-sm text-gray-500">Apt #{card.resident?.apartment_number}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                          {card.card_type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(card.status)}`}>
-                          {getStatusIcon(card.status)}
-                          <span className="font-medium text-sm">{card.status}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-700">
-                        {new Date(card.issued_date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-gray-700">
-                        {card.expiry_date ? new Date(card.expiry_date).toLocaleDateString() : 'No expiry'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedCard(card);
-                              setIsEditMode(true);
-                            }}
-                            className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
-                            title="View details"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-                          {card.status !== 'blocked' && (
-                            <button
-                              onClick={() => handleStatusUpdate(card.id, 'blocked')}
-                              className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
-                              title="Block card"
-                            >
-                              <Lock className="w-5 h-5" />
-                            </button>
-                          )}
-                          {card.status === 'blocked' && (
-                            <button
-                              onClick={() => handleStatusUpdate(card.id, 'active')}
-                              className="p-2 hover:bg-green-100 rounded-lg transition-colors text-green-600"
-                              title="Activate card"
-                            >
-                              <Unlock className="w-5 h-5" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDelete(card.id)}
-                            className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <button
+              onClick={() => {
+                setFormData({
+                  resident_id: '',
+                  card_number: '',
+                  card_type: 'resident',
+                  expiry_date: '',
+                  notes: ''
+                });
+                setShowModal(true);
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-shadow font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              Cấp Thẻ Mới
+            </button>
+          </div>
+
+          {/* Statistics Cards */}
+          {statistics && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Tổng số thẻ</p>
+                    <p className="text-3xl font-bold text-gray-900">{statistics.total}</p>
+                  </div>
+                  <BarChart3 className="w-12 h-12 text-blue-500 opacity-20" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Đang hoạt động</p>
+                    <p className="text-3xl font-bold text-green-600">{statistics.active}</p>
+                  </div>
+                  <Unlock className="w-12 h-12 text-green-500 opacity-20" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Thẻ mất</p>
+                    <p className="text-3xl font-bold text-orange-600">{statistics.lost}</p>
+                  </div>
+                  <AlertCircle className="w-12 h-12 text-orange-500 opacity-20" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Bị khóa</p>
+                    <p className="text-3xl font-bold text-red-600">{statistics.blocked}</p>
+                  </div>
+                  <Lock className="w-12 h-12 text-red-500 opacity-20" />
+                </div>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Create/Edit Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  {isEditMode ? 'Card Details' : 'Issue New Access Card'}
-                </h2>
-                
-                {!isEditMode ? (
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mb-6 flex-wrap">
+            {(['all', 'active', 'inactive', 'lost', 'blocked'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  filter === f
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-500'
+                }`}
+              >
+                {f === 'all' ? 'Tất cả' : getStatusText(f)}
+                <span className="ml-2 text-sm">
+                  ({f === 'all' ? cards.length : cards.filter(c => c.status === f).length})
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Cards Table */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            {filteredCards.length === 0 ? (
+              <div className="p-12 text-center">
+                <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">Không tìm thấy thẻ nào</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left font-semibold">Số Thẻ</th>
+                      <th className="px-6 py-4 text-left font-semibold">Cư Dân</th>
+                      <th className="px-6 py-4 text-left font-semibold">Loại</th>
+                      <th className="px-6 py-4 text-left font-semibold">Trạng Thái</th>
+                      <th className="px-6 py-4 text-left font-semibold">Ngày Cấp</th>
+                      <th className="px-6 py-4 text-left font-semibold">Hết Hạn</th>
+                      <th className="px-6 py-4 text-left font-semibold">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredCards.map((card) => (
+                      <tr key={card.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-mono font-semibold text-gray-900">{card.card_number}</td>
+                        <td className="px-6 py-4">
+                          <div className="text-gray-900 font-medium">{card.resident?.full_name}</div>
+                          <div className="text-sm text-gray-500">Căn hộ #{card.resident?.apartment_number}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                            {getCardTypeText(card.card_type)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(card.status)}`}>
+                            {getStatusIcon(card.status)}
+                            <span className="font-medium text-sm">{getStatusText(card.status)}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {new Date(card.issued_date).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {card.expiry_date ? new Date(card.expiry_date).toLocaleDateString('vi-VN') : 'Không hết hạn'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedCard(card);
+                                setShowDetailModal(true);
+                                setActiveTab('info');
+                                fetchCardDetails(card.id);
+                              }}
+                              className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
+                              title="Xem chi tiết"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedCard(card);
+                                setRenewData({ 
+                                  expiry_date: card.expiry_date ? new Date(card.expiry_date).toISOString().split('T')[0] : '',
+                                  notes: ''
+                                });
+                                setShowRenewModal(true);
+                              }}
+                              className="p-2 hover:bg-green-100 rounded-lg transition-colors text-green-600"
+                              title="Gia hạn thẻ"
+                            >
+                              <RefreshCw className="w-5 h-5" />
+                            </button>
+                            {card.status !== 'blocked' && (
+                              <button
+                                onClick={() => handleStatusUpdate(card.id, 'blocked')}
+                                className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                                title="Khóa thẻ"
+                              >
+                                <Lock className="w-5 h-5" />
+                              </button>
+                            )}
+                            {card.status === 'blocked' && (
+                              <button
+                                onClick={() => handleStatusUpdate(card.id, 'active')}
+                                className="p-2 hover:bg-green-100 rounded-lg transition-colors text-green-600"
+                                title="Kích hoạt thẻ"
+                              >
+                                <Unlock className="w-5 h-5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(card.id)}
+                              className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Create Modal */}
+          {showModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Cấp Thẻ Cư Dân Mới</h2>
+                  
                   <form onSubmit={handleCreateCard} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Resident *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Chọn Cư Dân *</label>
                       <select
                         required
                         value={formData.resident_id}
                         onChange={(e) => setFormData({ ...formData, resident_id: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       >
-                        <option value="">Choose a resident...</option>
+                        <option value="">Chọn cư dân...</option>
                         {residents.map((resident) => (
                           <option key={resident.id} value={resident.id}>
-                            {resident.full_name} (Apt #{resident.apartment_number})
+                            {resident.full_name} (Căn hộ #{resident.apartment_number})
                           </option>
                         ))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Card Number *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Số Thẻ *</label>
                       <input
                         type="text"
                         required
                         value={formData.card_number}
                         onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                        placeholder="e.g., RC-2024-0001"
+                        placeholder="VD: RC-2024-0001"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Loại Thẻ</label>
                         <select
                           value={formData.card_type}
                           onChange={(e) => setFormData({ ...formData, card_type: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         >
-                          <option value="resident">Resident</option>
-                          <option value="guest">Guest</option>
-                          <option value="staff">Staff</option>
+                          <option value="resident">Cư dân</option>
+                          <option value="guest">Khách</option>
+                          <option value="staff">Nhân viên</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Ngày Hết Hạn</label>
                         <input
                           type="date"
                           value={formData.expiry_date}
@@ -375,13 +545,13 @@ export default function AccessControlPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ghi Chú</label>
                       <textarea
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
                         rows={3}
-                        placeholder="Additional information"
+                        placeholder="Thông tin bổ sung"
                       />
                     </div>
 
@@ -391,73 +561,279 @@ export default function AccessControlPage() {
                         onClick={() => setShowModal(false)}
                         className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                       >
-                        Cancel
+                        Hủy
                       </button>
                       <button
                         type="submit"
                         className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
                       >
-                        Issue Card
+                        Cấp Thẻ
                       </button>
                     </div>
                   </form>
-                ) : selectedCard ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
-                        <p className="text-lg font-mono font-semibold text-gray-900">{selectedCard.card_number}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(selectedCard.status)}`}>
-                          {getStatusIcon(selectedCard.status)}
-                          <span className="font-medium">{selectedCard.status}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Resident</label>
-                        <p className="text-gray-900">{selectedCard.resident?.full_name}</p>
-                        <p className="text-sm text-gray-500">Apt #{selectedCard.resident?.apartment_number}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                        <p className="text-gray-900">{selectedCard.card_type}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Issued Date</label>
-                        <p className="text-gray-900">{new Date(selectedCard.issued_date).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
-                        <p className="text-gray-900">{selectedCard.expiry_date ? new Date(selectedCard.expiry_date).toLocaleDateString() : 'No expiry'}</p>
-                      </div>
-                      {selectedCard.notes && (
-                        <div className="col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                          <p className="text-gray-900">{selectedCard.notes}</p>
-                        </div>
-                      )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Renew Modal */}
+          {showRenewModal && selectedCard && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4">
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Gia Hạn Thẻ</h2>
+                  <p className="text-gray-600 mb-4">Thẻ: <span className="font-mono font-semibold">{selectedCard.card_number}</span></p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ngày Hết Hạn Mới *</label>
+                      <input
+                        type="date"
+                        required
+                        value={renewData.expiry_date}
+                        onChange={(e) => setRenewData({ ...renewData, expiry_date: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      />
                     </div>
 
-                    <div className="flex gap-3 justify-end pt-4 border-t">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ghi Chú</label>
+                      <textarea
+                        value={renewData.notes}
+                        onChange={(e) => setRenewData({ ...renewData, notes: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                        rows={2}
+                        placeholder="Lý do gia hạn"
+                      />
+                    </div>
+
+                    <div className="flex gap-3 justify-end pt-4">
                       <button
-                        onClick={() => {
-                          setShowModal(false);
-                          setIsEditMode(false);
-                          setSelectedCard(null);
-                        }}
+                        onClick={() => setShowRenewModal(false)}
                         className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                       >
-                        Close
+                        Hủy
+                      </button>
+                      <button
+                        onClick={handleRenewCard}
+                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                      >
+                        Gia Hạn
                       </button>
                     </div>
                   </div>
-                ) : null}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Detail Modal */}
+          {showDetailModal && selectedCard && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900">Chi Tiết Thẻ Cư Dân</h2>
+                  <p className="text-sm text-gray-500 mt-1">Số thẻ: {selectedCard.card_number}</p>
+                </div>
+
+                <div className="flex border-b border-gray-200 px-6">
+                  <button
+                    onClick={() => setActiveTab('info')}
+                    className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'info' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4" />Thông tin</div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'history' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2"><History className="w-4 h-4" />Lịch sử</div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('logs')}
+                    className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'logs' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2"><Activity className="w-4 h-4" />Quét thẻ</div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('fees')}
+                    className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'fees' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2"><DollarSign className="w-4 h-4" />Phí</div>
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  {loadingDetails ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                    </div>
+                  ) : (
+                    <>
+                      {activeTab === 'info' && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Số thẻ</label>
+                              <p className="text-lg font-mono font-semibold text-gray-900">{selectedCard.card_number}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(selectedCard.status)}`}>
+                                {getStatusIcon(selectedCard.status)}
+                                <span className="font-medium">{getStatusText(selectedCard.status)}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Cư dân</label>
+                              <p className="text-gray-900">{selectedCard.resident?.full_name}</p>
+                              <p className="text-sm text-gray-500">Căn hộ #{selectedCard.resident?.apartment_number}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Loại thẻ</label>
+                              <p className="text-gray-900">{getCardTypeText(selectedCard.card_type)}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày cấp</label>
+                              <p className="text-gray-900">{new Date(selectedCard.issued_date).toLocaleDateString('vi-VN')}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Hết hạn</label>
+                              <p className="text-gray-900">{selectedCard.expiry_date ? new Date(selectedCard.expiry_date).toLocaleDateString('vi-VN') : 'Không hết hạn'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Người cấp</label>
+                              <p className="text-gray-900">{selectedCard.issuer?.full_name || 'Hệ thống'}</p>
+                            </div>
+                            {selectedCard.reason_for_status && (
+                              <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Lý do</label>
+                                <p className="text-red-600">{selectedCard.reason_for_status}</p>
+                              </div>
+                            )}
+                            {selectedCard.notes && (
+                              <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                                <p className="text-gray-900">{selectedCard.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {activeTab === 'history' && (
+                        <div className="space-y-4">
+                          {cardHistory.length === 0 ? (
+                            <p className="text-center text-gray-500 py-8">Chưa có lịch sử</p>
+                          ) : (
+                            cardHistory.map((item) => (
+                              <div key={item.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div>
+                                    <span className="font-semibold text-gray-900">{getActionTypeText(item.action_type)}</span>
+                                    <p className="text-sm text-gray-600 mt-1">Bởi: {item.action_user?.full_name || 'Hệ thống'}</p>
+                                  </div>
+                                  <span className="text-xs text-gray-500">{new Date(item.created_at).toLocaleString('vi-VN')}</span>
+                                </div>
+                                {item.old_status && item.new_status && (
+                                  <p className="text-sm text-gray-700">
+                                    Trạng thái: <span className="font-medium">{getStatusText(item.old_status)}</span> → <span className="font-medium">{getStatusText(item.new_status)}</span>
+                                  </p>
+                                )}
+                                {item.reason && <p className="text-sm text-gray-600 mt-1">Lý do: {item.reason}</p>}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {activeTab === 'logs' && (
+                        <div className="space-y-3">
+                          {accessLogs.length === 0 ? (
+                            <p className="text-center text-gray-500 py-8">Chưa có lịch sử quét thẻ</p>
+                          ) : (
+                            accessLogs.map((log) => (
+                              <div key={log.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${log.access_type === 'entry' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                      {getAccessTypeText(log.access_type)}
+                                    </span>
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${log.access_status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                      {getAccessStatusText(log.access_status)}
+                                    </span>
+                                    <span className="font-semibold text-gray-900">{log.access_point}</span>
+                                  </div>
+                                  {log.notes && <p className="text-sm text-gray-600">{log.notes}</p>}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-gray-900 font-medium">{new Date(log.access_time).toLocaleTimeString('vi-VN')}</p>
+                                  <p className="text-xs text-gray-500">{new Date(log.access_time).toLocaleDateString('vi-VN')}</p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {activeTab === 'fees' && (
+                        <div className="space-y-4">
+                          {cardFees.length === 0 ? (
+                            <p className="text-center text-gray-500 py-8">Không có khoản phí</p>
+                          ) : (
+                            cardFees.map((fee) => (
+                              <div key={fee.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div>
+                                    <span className="font-semibold text-gray-900">{getFeeTypeText(fee.fee_type)}</span>
+                                    <p className="text-sm text-gray-600 mt-1">{fee.description}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-gray-900">{formatCurrency(fee.amount)}</p>
+                                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${
+                                      fee.status === 'paid' ? 'bg-green-100 text-green-700' : 
+                                      fee.status === 'waived' ? 'bg-blue-100 text-blue-700' : 
+                                      'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {getFeeStatusText(fee.status)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-300">
+                                  <span>Tạo: {new Date(fee.created_at).toLocaleDateString('vi-VN')}</span>
+                                  {fee.paid_at && <span>Thanh toán: {new Date(fee.paid_at).toLocaleDateString('vi-VN')}</span>}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-3 justify-end p-6 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      setSelectedCard(null);
+                    }}
+                    className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

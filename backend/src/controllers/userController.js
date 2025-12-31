@@ -241,6 +241,43 @@ const updateUser = async (req, res) => {
       });
     }
 
+    // NEW VALIDATION: If changing role to 'user', must have resident record
+    if (role === 'user' && existingUser.role !== 'user') {
+      const { data: residentRecord } = await supabaseAdmin
+        .from('residents')
+        .select('id')
+        .eq('user_id', id)
+        .single();
+
+      if (!residentRecord) {
+        return res.status(400).json({ 
+          error: 'User must be registered as a resident before being assigned role "user". Please create a resident record first.' 
+        });
+      }
+    }
+
+    // NEW VALIDATION: If assigning apartment_number to user with role 'user', must have resident
+    if (role === 'user' && apartment_number) {
+      const { data: residentRecord } = await supabaseAdmin
+        .from('residents')
+        .select('id, apt_id')
+        .eq('user_id', id)
+        .single();
+
+      if (!residentRecord) {
+        return res.status(400).json({ 
+          error: 'User must be registered as a resident before being assigned to an apartment.' 
+        });
+      }
+
+      // Verify apartment_number matches resident's apartment
+      if (residentRecord.apt_id !== apartment_number) {
+        return res.status(400).json({ 
+          error: `User's resident record is in apartment ${residentRecord.apt_id}, not ${apartment_number}` 
+        });
+      }
+    }
+
     // Update auth user if email or password changed
     if (email || password) {
       const updateData = {};
@@ -323,8 +360,52 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // First, delete the profile from the profiles table
-    // This will cascade delete related records (visitors, access_cards, etc.)
+    // Step 1: Unlink resident record if exists
+    const { data: residentRecord } = await supabaseAdmin
+      .from('residents')
+      .select('id')
+      .eq('user_id', id)
+      .maybeSingle();
+
+    if (residentRecord) {
+      // Unlink resident from user (don't delete resident, just unlink)
+      const { error: unlinkError } = await supabaseAdmin
+        .from('residents')
+        .update({ user_id: null })
+        .eq('user_id', id);
+      
+      if (unlinkError) {
+        console.error('Unlink resident error:', unlinkError);
+      }
+    }
+
+    // Step 2: Delete related records that might block profile deletion
+    try {
+      // Delete notifications
+      await supabaseAdmin.from('notifications').delete().eq('user_id', id);
+      
+      // Delete maintenance requests created by user
+      await supabaseAdmin.from('maintenance_requests').delete().eq('created_by', id);
+      
+      // Delete visitors created by user
+      await supabaseAdmin.from('visitors').delete().eq('created_by', id);
+      
+      // Delete access cards for user
+      await supabaseAdmin.from('access_cards').delete().eq('user_id', id);
+    } catch (cleanupError) {
+      console.warn('Cleanup error (non-critical):', cleanupError);
+      // Continue with deletion even if cleanup fails
+    }
+
+    // Step 3: Delete from Supabase Auth first (this often cascades to profiles via trigger)
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
+
+    if (authDeleteError) {
+      console.error('Auth delete error:', authDeleteError);
+      // Continue to try profile delete even if auth delete fails
+    }
+
+    // Step 4: Delete profile if it still exists
     const { error: profileDeleteError } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -332,18 +413,14 @@ const deleteUser = async (req, res) => {
 
     if (profileDeleteError) {
       console.error('Profile delete error:', profileDeleteError);
+      // If profile delete fails but auth delete succeeded, still return success
+      if (!authDeleteError) {
+        return res.status(200).json({ 
+          message: 'User deleted successfully (profile may have been auto-deleted)' 
+        });
+      }
       return res.status(500).json({ 
         error: profileDeleteError.message || 'Failed to delete user profile' 
-      });
-    }
-
-    // Then delete user from Supabase Auth
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
-
-    if (deleteError) {
-      console.error('Delete user error:', deleteError);
-      return res.status(500).json({ 
-        error: deleteError.message || 'Failed to delete user' 
       });
     }
 

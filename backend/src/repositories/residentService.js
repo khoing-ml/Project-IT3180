@@ -30,9 +30,22 @@ exports.listAll = async () => {
 };
 
 exports.createResident = async (resident) => {
-  // resident: { apt_id, full_name, phone, id_number, is_owner }
+  // resident: { apt_id, full_name, phone, id_number, is_owner, user_id }
   if (!resident || !resident.apt_id || !resident.full_name) {
     throw new Error('Invalid resident payload');
+  }
+
+  // If user_id provided, check if user already has a resident record
+  if (resident.user_id) {
+    const { data: existing } = await supabaseAdmin
+      .from('residents')
+      .select('id')
+      .eq('user_id', resident.user_id)
+      .single();
+
+    if (existing) {
+      throw new Error('This user already has a resident record');
+    }
   }
 
   // If marking as owner, clear existing owner flag for that apartment
@@ -44,7 +57,17 @@ exports.createResident = async (resident) => {
     if (clearErr) throw clearErr;
   }
 
-  const payload = Object.assign({}, resident, { created_at: new Date().toISOString() });
+  // Map frontend camelCase fields to DB snake_case
+  const payload = Object.assign({}, resident, {
+    created_at: new Date().toISOString(),
+    year_of_birth: resident.yearOfBirth || resident.year_of_birth || null,
+    hometown: resident.hometown || null,
+    gender: resident.gender || null,
+    user_id: resident.user_id || null
+  });
+  // Remove potential camelCase duplicate to avoid DB column mismatch
+  delete payload.yearOfBirth;
+
   const { data, error } = await supabaseAdmin.from('residents').insert(payload).select().single();
   if (error) throw error;
 
@@ -71,6 +94,121 @@ exports.createResident = async (resident) => {
     // don't fail resident creation if apartment update fails
     console.warn('Failed to update apartment after creating resident', e.message || e);
   }
+
+  return data;
+};
+
+// NEW: Update resident
+exports.updateResident = async (resident_id, updates) => {
+  const { data: resident, error: fetchErr } = await supabaseAdmin
+    .from('residents')
+    .select('*')
+    .eq('id', resident_id)
+    .single();
+  
+  if (fetchErr) throw fetchErr;
+  if (!resident) throw new Error('Resident not found');
+
+  // Map camelCase to snake_case
+  const payload = {
+    updated_at: new Date().toISOString()
+  };
+
+  if (updates.full_name !== undefined) payload.full_name = updates.full_name;
+  if (updates.phone !== undefined) payload.phone = updates.phone;
+  if (updates.email !== undefined) payload.email = updates.email;
+  if (updates.id_number !== undefined) payload.id_number = updates.id_number;
+  if (updates.yearOfBirth !== undefined) payload.year_of_birth = updates.yearOfBirth;
+  if (updates.hometown !== undefined) payload.hometown = updates.hometown;
+  if (updates.gender !== undefined) payload.gender = updates.gender;
+  if (updates.notes !== undefined) payload.notes = updates.notes;
+  
+  // Handle is_owner flag
+  if (updates.is_owner !== undefined) {
+    if (updates.is_owner && !resident.is_owner) {
+      // Clear other owners in same apartment
+      await supabaseAdmin
+        .from('residents')
+        .update({ is_owner: false })
+        .eq('apt_id', resident.apt_id)
+        .neq('id', resident_id);
+    }
+    payload.is_owner = updates.is_owner;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('residents')
+    .update(payload)
+    .eq('id', resident_id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Update apartment if is_owner changed
+  if (data.is_owner) {
+    await supabaseAdmin
+      .from('apartments')
+      .update({
+        owner_id: data.id,
+        owner_name: data.full_name,
+        owner_email: data.email
+      })
+      .eq('apt_id', data.apt_id);
+  }
+
+  return data;
+};
+
+// NEW: Link resident to user
+exports.linkResidentToUser = async (resident_id, user_id) => {
+  // Validate resident exists
+  const { data: resident, error: resErr } = await supabaseAdmin
+    .from('residents')
+    .select('*')
+    .eq('id', resident_id)
+    .single();
+
+  if (resErr) throw resErr;
+  if (!resident) throw new Error('Resident not found');
+
+  // Validate user exists
+  const { data: user, error: userErr } = await supabaseAdmin
+    .from('profiles')
+    .select('*')
+    .eq('id', user_id)
+    .single();
+
+  if (userErr) throw userErr;
+  if (!user) throw new Error('User not found');
+
+  // Check if user already linked to another resident
+  const { data: existing } = await supabaseAdmin
+    .from('residents')
+    .select('id')
+    .eq('user_id', user_id)
+    .neq('id', resident_id)
+    .single();
+
+  if (existing) {
+    throw new Error('This user is already linked to another resident');
+  }
+
+  // Link resident to user
+  const { data, error } = await supabaseAdmin
+    .from('residents')
+    .update({ user_id })
+    .eq('id', resident_id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Update user's apartment_number to match resident's apartment
+  await supabaseAdmin
+    .from('profiles')
+    .update({ apartment_number: resident.apt_id })
+    .eq('id', user_id);
 
   return data;
 };

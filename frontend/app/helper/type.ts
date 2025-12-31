@@ -11,7 +11,10 @@ export type request_type = {
     owner: string,
     created_at: string,
     color: string,
-    type: string
+    type: string,
+    status?: 'pending' | 'approved' | 'rejected',
+    rejection_reason?: string,
+    reviewed_at?: string
 }
 
 export type filterType = {

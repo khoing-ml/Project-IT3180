@@ -1,31 +1,19 @@
 "use client";
 
-import { Menu, Search, Moon, Sun, LogOut } from "lucide-react";
+import { Menu, Search, LogOut } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserRole } from "@/types/auth";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import NotificationPanel from "./NotificationPanel";
 
 export default function Header() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogout = async () => {
     await logout();
     router.push("/login");
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const getRoleLabel = (role: UserRole) => {
@@ -74,21 +62,6 @@ export default function Header() {
         <div className="flex items-center gap-3">
           {/* Notification Panel */}
           <NotificationPanel />
-
-          {/* Theme Toggle */}
-          {mounted && (
-            <button
-              onClick={toggleTheme}
-              className="relative p-2.5 hover:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-all group"
-              title={theme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
-            >
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5 text-slate-300 group-hover:text-yellow-400 transition-colors" />
-              ) : (
-                <Moon className="w-5 h-5 text-slate-300 group-hover:text-blue-400 transition-colors" />
-              )}
-            </button>
-          )}
 
           {/* User Profile */}
           <div className="flex items-center gap-3 pl-4 border-l border-slate-700 dark:border-slate-800">

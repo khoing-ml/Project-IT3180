@@ -127,10 +127,21 @@ export default function UserVehiclePage() {
       const owner = formData.owner;
       const type = formData.type;
       const color = formData.color;
-      const res = await api.request_new_vehicle(apt_id, number, type, color, owner);
+      const created_by = user?.id;
+      
+      console.log("Sending request:", { apt_id, number, owner, type, color, created_by });
+      
+      if (!apt_id || !number || !owner || !type || !color) {
+        throw new Error("Vui lòng điền đầy đủ thông tin");
+      }
+      
+      const res = await api.request_new_vehicle(apt_id, number, type, color, owner, created_by);
+      console.log("API response:", res);
+      return res;
     }
     catch(error) {
-      throw new Error(error.message);
+      console.error("sendNewRequest error:", error);
+      throw new Error(error.message || "Không thể gửi yêu cầu");
     }
   }
 
@@ -170,27 +181,42 @@ export default function UserVehiclePage() {
 
   
   const handleSubmit = async(e: React.FormEvent) => {
-    setInMode(true);
     e.preventDefault()
-    console.log("434334");
+    setInMode(true);
     console.log("[v0] Form submitted:", formData)
-    if(user && user.apartmentNumber) {
-      console.log(user);
-      try {
-        await sendNewRequest();
-        await setOpen(false)
-        await setFormData({
-          licensePlate: "",
-          type: undefined,
-          color: "",
-          owner: "",
-        })
-        await fetchUserRequest();
-        await setInMode(false);
-      }
-      catch(error) {
-        console.log(error.message);
-      }
+    
+    if(!user || !user.apartmentNumber) {
+      console.error("No user or apartment number");
+      alert("Vui lòng đăng nhập lại!");
+      setInMode(false);
+      return;
+    }
+    
+    console.log("User info:", user);
+    try {
+      const result = await sendNewRequest();
+      console.log("Submit result:", result);
+      
+      // Success! Close dialog and reset form
+      setOpen(false);
+      setFormData({
+        licensePlate: "",
+        type: undefined,
+        color: "",
+        owner: "",
+      });
+      
+      // Refresh the request list
+      await fetchUserRequest();
+      setInMode(false);
+      
+      // Show success message
+      alert("Đăng ký xe thành công! Vui lòng đợi ban quản trị xác nhận.");
+    }
+    catch(error) {
+      console.error("Submit error:", error);
+      alert("Lỗi: " + (error.message || "Không thể gửi yêu cầu"));
+      setInMode(false);
     }
   }
 
@@ -340,15 +366,10 @@ export default function UserVehiclePage() {
                     <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-gray-300">
                       Hủy
                     </Button>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                      Gửi yêu cầu
+                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isInMode}>
+                      {isInMode ? "Đang gửi..." : "Gửi yêu cầu"}
                     </Button>
                   </div>
-                  {isInMode && (
-                        <Card className="p-6 text-center text-red-600 border-red-200 bg-red-50">
-                            Lỗi! chua duoc submit
-                        </Card>
-                  )}
                 </form>
               </DialogContent>
             </Dialog>
@@ -433,18 +454,38 @@ export default function UserVehiclePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {requests.map((request) => (
-                      <TableRow key={request.number} className="border-gray-200 hover:bg-gray-50">
-                        <TableCell className="font-medium text-gray-900">{request.number}</TableCell>
-                        <TableCell className="text-gray-700">{vehicleTypeLabels[request.type]}</TableCell>
-                        <TableCell className="text-gray-700">{request.color}</TableCell>
-                        <TableCell className="text-gray-700">{request.owner}</TableCell>
-                        <TableCell className="text-gray-700">{request.apt_id}</TableCell>
-                        <TableCell>
-                          <Badge className="bg-yellow-600 hover:bg-yellow-600 text-white border-0">Đang chờ</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {requests.map((request) => {
+                      const getStatusBadge = (status: string) => {
+                        switch(status) {
+                          case 'approved':
+                            return <Badge className="bg-green-600 hover:bg-green-600 text-white border-0">Đã duyệt</Badge>;
+                          case 'rejected':
+                            return <Badge className="bg-red-600 hover:bg-red-600 text-white border-0">Đã từ chối</Badge>;
+                          default:
+                            return <Badge className="bg-yellow-600 hover:bg-yellow-600 text-white border-0">Đang chờ</Badge>;
+                        }
+                      };
+                      
+                      return (
+                        <TableRow key={request.number} className="border-gray-200 hover:bg-gray-50">
+                          <TableCell className="font-medium text-gray-900">{request.number}</TableCell>
+                          <TableCell className="text-gray-700">{vehicleTypeLabels[request.type]}</TableCell>
+                          <TableCell className="text-gray-700">{request.color}</TableCell>
+                          <TableCell className="text-gray-700">{request.owner}</TableCell>
+                          <TableCell className="text-gray-700">{request.apt_id}</TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {getStatusBadge(request.status || 'pending')}
+                              {request.status === 'rejected' && request.rejection_reason && (
+                                <div className="text-xs text-red-600 mt-1">
+                                  Lý do: {request.rejection_reason}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
                   {requests.length === 0 && (

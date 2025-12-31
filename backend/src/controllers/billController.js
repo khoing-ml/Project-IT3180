@@ -354,6 +354,196 @@ class BillController {
             if(error) {
                 throw new Error(error.message);
             }
+            return res.status(200).json({message: "Success!", data: data});
+        }
+        catch(error) {
+            return res.status(400).json({message: error.message});
+        }
+    }
+
+    // Enhanced bill management methods
+    async getBillAnalytics(req, res) {
+        try {
+            const { data, error } = await this.repo.getBillAnalytics();
+            if (error) throw new Error(error.message);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async getPaymentStats(req, res) {
+        try {
+            const { period } = req.query;
+            const { data, error } = await this.repo.getPaymentStats(period);
+            if (error) throw new Error(error.message);
+            return res.status(200).json({ success: true, data: data?.[0] || {} });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async getApartmentBillHistory(req, res) {
+        try {
+            const { apt_id } = req.params;
+            if (!apt_id) throw new Error('Apartment ID is required');
+            const { data, error } = await this.repo.getApartmentBillHistory(apt_id);
+            if (error) throw new Error(error.message);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async markBillAsPaid(req, res) {
+        try {
+            const { apt_id, period, payment_method } = req.body;
+            if (!apt_id || !period) throw new Error('Apartment ID and period are required');
+            
+            const { data, error } = await this.repo.markBillAsPaid(apt_id, period, payment_method);
+            if (error) throw new Error(error.message);
+
+            // Create notification for apartment owner
+            const ownerId = await getApartmentOwnerUserId(apt_id);
+            if (ownerId) {
+                await createNotification(
+                    ownerId,
+                    'success',
+                    'Thanh toán thành công',
+                    `Hóa đơn kỳ ${period} của căn hộ ${apt_id} đã được thanh toán thành công.`,
+                    '/bills',
+                    { apt_id, period, payment_method }
+                );
+            }
+
+            return res.status(200).json({ success: true, message: 'Bill marked as paid', data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async addLateFee(req, res) {
+        try {
+            const { apt_id, period, late_fee } = req.body;
+            if (!apt_id || !period || late_fee === undefined) {
+                throw new Error('Apartment ID, period, and late fee are required');
+            }
+
+            const { data, error } = await this.repo.addLateFee(apt_id, period, late_fee);
+            if (error) throw new Error(error.message);
+
+            // Notify owner about late fee
+            const ownerId = await getApartmentOwnerUserId(apt_id);
+            if (ownerId) {
+                await createNotification(
+                    ownerId,
+                    'warning',
+                    'Phí trễ hạn',
+                    `Phí trễ hạn ${late_fee.toLocaleString('vi-VN')} VNĐ đã được áp dụng cho hóa đơn kỳ ${period}.`,
+                    '/bills',
+                    { apt_id, period, late_fee }
+                );
+            }
+
+            return res.status(200).json({ success: true, message: 'Late fee added', data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async applyDiscount(req, res) {
+        try {
+            const { apt_id, period, discount } = req.body;
+            if (!apt_id || !period || discount === undefined) {
+                throw new Error('Apartment ID, period, and discount are required');
+            }
+
+            const { data, error } = await this.repo.applyDiscount(apt_id, period, discount);
+            if (error) throw new Error(error.message);
+
+            // Notify owner about discount
+            const ownerId = await getApartmentOwnerUserId(apt_id);
+            if (ownerId) {
+                await createNotification(
+                    ownerId,
+                    'success',
+                    'Giảm giá',
+                    `Giảm giá ${discount.toLocaleString('vi-VN')} VNĐ đã được áp dụng cho hóa đơn kỳ ${period}.`,
+                    '/bills',
+                    { apt_id, period, discount }
+                );
+            }
+
+            return res.status(200).json({ success: true, message: 'Discount applied', data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async getOverdueBills(req, res) {
+        try {
+            const { data, error } = await this.repo.getOverdueBills();
+            if (error) throw new Error(error.message);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async sendReminder(req, res) {
+        try {
+            const { apt_id, period } = req.body;
+            if (!apt_id || !period) throw new Error('Apartment ID and period are required');
+
+            const { data, error } = await this.repo.sendReminder(apt_id, period);
+            if (error) throw new Error(error.message);
+
+            // Send notification reminder
+            const ownerId = await getApartmentOwnerUserId(apt_id);
+            if (ownerId) {
+                await createNotification(
+                    ownerId,
+                    'warning',
+                    'Nhắc nhở thanh toán',
+                    `Đây là lời nhắc về hóa đơn kỳ ${period} chưa được thanh toán. Vui lòng thanh toán sớm để tránh phí trễ hạn.`,
+                    '/bills',
+                    { apt_id, period }
+                );
+            }
+
+            return res.status(200).json({ success: true, message: 'Reminder sent', data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async updateBillStatus(req, res) {
+        try {
+            const { apt_id, period, status } = req.body;
+            if (!apt_id || !period || !status) {
+                throw new Error('Apartment ID, period, and status are required');
+            }
+
+            const validStatuses = ['unpaid', 'partial', 'paid', 'overdue'];
+            if (!validStatuses.includes(status)) {
+                throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+            }
+
+            const { data, error } = await this.repo.updateBillStatus(apt_id, period, status);
+            if (error) throw new Error(error.message);
+
+            return res.status(200).json({ success: true, message: 'Bill status updated', data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async query_sum_all_OLD(req, res) {
+        try {
+            const {data, error} = await this.repo.query_all_collected();
+            if(error) {
+                throw new Error(error.message);
+            }
             return res.status(200).json({result: data});
         }
         catch(error) {
@@ -577,6 +767,26 @@ class BillController {
 
                             servicesSum += amount;
                         }
+
+                        // Calculate vehicle fees automatically from vehicles table
+                        let vehicleFees = 0;
+                        try {
+                            const { data: vehiclesData, error: vehiclesErr } = await supabaseAdmin
+                                .from('vehicles')
+                                .select('monthly_fee')
+                                .eq('apt_id', apt.apt_id)
+                                .eq('status', 'active');
+                            
+                            if (!vehiclesErr && vehiclesData && vehiclesData.length > 0) {
+                                vehicleFees = vehiclesData.reduce((sum, v) => sum + Number(v.monthly_fee || 0), 0);
+                            }
+                        } catch (vehicleErr) {
+                            console.warn(`Failed to calculate vehicle fees for ${apt.apt_id}:`, vehicleErr);
+                        }
+
+                        // Add vehicle fees to bill
+                        billObj.vehicles = vehicleFees;
+                        servicesSum += vehicleFees;
 
                         billObj.total = servicesSum + Number(billObj.pre_debt || 0);
 

@@ -47,9 +47,32 @@ exports.createApartment = async (apartmentData) => {
     throw new Error('Invalid apartment data');
   }
 
+  // Validate required fields
+  if (!apartmentData.apt_id) {
+    throw new Error('Apartment ID (apt_id) is required');
+  }
+
+  // Check if apartment already exists
+  const { data: existing } = await supabaseAdmin
+    .from('apartments')
+    .select('apt_id')
+    .eq('apt_id', apartmentData.apt_id)
+    .single();
+
+  if (existing) {
+    throw new Error(`Apartment ${apartmentData.apt_id} already exists`);
+  }
+
+  // Set default values
+  const payload = {
+    ...apartmentData,
+    resident_count: apartmentData.resident_count || 0,
+    status: apartmentData.status || 'vacant'
+  };
+
   const { data, error } = await supabaseAdmin
     .from('apartments')
-    .insert([apartmentData])   
+    .insert([payload])   
     .select()
     .single();
 

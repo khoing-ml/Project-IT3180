@@ -91,8 +91,111 @@ const requireAdminOrManager = (req, res, next) => {
   next();
 };
 
+/**
+ * Middleware to check if user is an employee (accountant, cashier, administrative)
+ */
+const requireEmployee = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || req.profile?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Check if user has an active employee record
+    const { supabaseAdmin } = require('../config/supabase');
+    const { data: employee, error } = await supabaseAdmin
+      .from('employees')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single();
+
+    if (error || !employee) {
+      return res.status(403).json({ 
+        error: 'Access denied. Employee privileges required.' 
+      });
+    }
+
+    // Attach employee data to request
+    req.employee = employee;
+    next();
+  } catch (error) {
+    console.error('Employee check error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Middleware to check if user is an accountant
+ */
+const requireAccountant = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || req.profile?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { supabaseAdmin } = require('../config/supabase');
+    const { data: employee, error } = await supabaseAdmin
+      .from('employees')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'accountant')
+      .eq('status', 'active')
+      .single();
+
+    if (error || !employee) {
+      return res.status(403).json({ 
+        error: 'Access denied. Accountant privileges required.' 
+      });
+    }
+
+    req.employee = employee;
+    next();
+  } catch (error) {
+    console.error('Accountant check error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Middleware to check if user is a cashier
+ */
+const requireCashier = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || req.profile?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { supabaseAdmin } = require('../config/supabase');
+    const { data: employee, error } = await supabaseAdmin
+      .from('employees')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'cashier')
+      .eq('status', 'active')
+      .single();
+
+    if (error || !employee) {
+      return res.status(403).json({ 
+        error: 'Access denied. Cashier privileges required.' 
+      });
+    }
+
+    req.employee = employee;
+    next();
+  } catch (error) {
+    console.error('Cashier check error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   verifyToken,
   requireAdmin,
-  requireAdminOrManager
+  requireAdminOrManager,
+  requireEmployee,
+  requireAccountant,
+  requireCashier
 };

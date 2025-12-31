@@ -179,6 +179,15 @@ class vehicleRegistrationRepository {
         return res;
     }
 
+    async query_by_number(number) {
+        const res = await supabaseAdmin
+        .from('vehicle_registration')
+        .select('*')
+        .eq('number', number)
+        .single();
+        return res;
+    }
+
     async update(new_value, number) {
         const res = await supabaseAdmin
         .from('vehicle_registration')

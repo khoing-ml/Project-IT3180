@@ -95,6 +95,18 @@ router.post('/submit-bills', verifyToken, controller.submitBulk.bind(controller)
 // Export bills (CSV) - admin/manager only
 router.get('/export', verifyToken, requireAdminOrManager, controller.exportBills.bind(controller));
 
+// Enhanced bill analytics and management routes
+router.get('/analytics', verifyToken, requireAdminOrManager, controller.getBillAnalytics.bind(controller));
+router.get('/payment-stats', verifyToken, controller.getPaymentStats.bind(controller));
+router.get('/apartment-history/:apt_id', verifyToken, controller.getApartmentBillHistory.bind(controller));
+router.get('/overdue', verifyToken, requireAdminOrManager, controller.getOverdueBills.bind(controller));
+
+router.patch('/mark-paid', verifyToken, requireAdminOrManager, controller.markBillAsPaid.bind(controller));
+router.patch('/add-late-fee', verifyToken, requireAdminOrManager, controller.addLateFee.bind(controller));
+router.patch('/apply-discount', verifyToken, requireAdminOrManager, controller.applyDiscount.bind(controller));
+router.post('/send-reminder', verifyToken, requireAdminOrManager, controller.sendReminder.bind(controller));
+router.patch('/update-status', verifyToken, requireAdminOrManager, controller.updateBillStatus.bind(controller));
+
 /**
  * @swagger
  * /bills/config/{configId}:

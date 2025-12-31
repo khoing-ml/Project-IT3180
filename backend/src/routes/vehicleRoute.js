@@ -28,5 +28,9 @@ router.post("/delete-request", controller.delete_request.bind(controller));
 router.get("/query-all-request", controller.query_all_request.bind(controller));
 router.get("/query-request-by-apt", controller.query_request_by_apt.bind(controller));
 
+// Approve and reject vehicle registration requests (admin only)
+router.post("/approve-request", requireAdminOrManager, controller.approve_request.bind(controller));
+router.post("/reject-request", requireAdminOrManager, controller.reject_request.bind(controller));
+
 
 module.exports = router;
