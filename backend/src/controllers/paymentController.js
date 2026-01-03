@@ -244,3 +244,191 @@ exports.getPeriodSummary = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+// ==== MODULE 3.1: QUẢN LÝ DOANH THU ====
+
+// 3.1.1 Biểu đồ tăng trưởng doanh thu
+exports.getRevenueGrowth = async (req, res) => {
+  try {
+    const { start_period, end_period } = req.query;
+    
+    if (!start_period || !end_period) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Thiếu tham số start_period hoặc end_period (format: YYYY-MM)' 
+      });
+    }
+
+    const data = await paymentService.getRevenueGrowth(start_period, end_period);
+
+    res.status(200).json({
+      success: true,
+      message: 'Biểu đồ tăng trưởng doanh thu',
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// 3.1.2 Doanh thu theo loại phí
+exports.getRevenueByFeeType = async (req, res) => {
+  try {
+    const { period } = req.query;
+    const data = await paymentService.getRevenueByFeeType(period);
+
+    res.status(200).json({
+      success: true,
+      message: period 
+        ? `Doanh thu theo loại phí trong kỳ ${period}` 
+        : 'Doanh thu theo loại phí (tổng hợp)',
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// 3.1.3 Phân tích theo tầng/khu
+exports.getRevenueByFloorOrArea = async (req, res) => {
+  try {
+    const { period, group_by = 'floor' } = req.query;
+    const data = await paymentService.getRevenueByFloorOrArea(period, group_by);
+
+    res.status(200).json({
+      success: true,
+      message: `Phân tích doanh thu theo ${group_by === 'floor' ? 'tầng' : 'khu'}`,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// ==== MODULE 3.2: KIỂM SOÁT NỢ ĐỌNG ====
+
+// 3.2.1 Lọc căn hộ chưa đóng phí
+exports.getUnpaidApartments = async (req, res) => {
+  try {
+    const filters = {
+      period: req.query.period,
+      floor: req.query.floor ? parseInt(req.query.floor) : undefined,
+      min_debt: req.query.min_debt ? parseFloat(req.query.min_debt) : undefined,
+      max_debt: req.query.max_debt ? parseFloat(req.query.max_debt) : undefined,
+      sort_by: req.query.sort_by || 'debt',
+      sort_order: req.query.sort_order || 'desc',
+      offset: req.query.offset ? parseInt(req.query.offset) : 0,
+      limit: req.query.limit ? parseInt(req.query.limit) : 50
+    };
+
+    const result = await paymentService.getUnpaidApartments(filters);
+
+    res.status(200).json({
+      success: true,
+      message: 'Danh sách căn hộ chưa đóng phí',
+      ...result,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// 3.2.2 Tính tổng nợ dư kiện
+exports.getTotalOutstandingDebt = async (req, res) => {
+  try {
+    const data = await paymentService.getTotalOutstandingDebt();
+
+    res.status(200).json({
+      success: true,
+      message: 'Tổng hợp nợ dư kiện',
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// 3.2.3 Theo dõi lịch sử trả nợ
+exports.getDebtPaymentHistory = async (req, res) => {
+  try {
+    const { apt_id } = req.params;
+    
+    if (!apt_id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Thiếu tham số apt_id' 
+      });
+    }
+
+    const data = await paymentService.getDebtPaymentHistory(apt_id);
+
+    res.status(200).json({
+      success: true,
+      message: `Lịch sử trả nợ của căn hộ ${apt_id}`,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// ==== MODULE 3.3: BÁO CÁO QUYẾT TOÁN ====
+
+// 3.3.1 Tổng hợp thu chi tháng (báo cáo quyết toán)
+exports.getMonthlySettlementReport = async (req, res) => {
+  try {
+    const { period } = req.params;
+    
+    if (!period) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Thiếu tham số period (format: YYYY-MM)' 
+      });
+    }
+
+    const data = await paymentService.getMonthlySettlementReport(period);
+
+    res.status(200).json({
+      success: true,
+      message: `Báo cáo quyết toán tháng ${period}`,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Helper function to create notifications (moved from billController)
+const createNotification = async (userId, type, title, message, link = null, metadata = null) => {
+  try {
+    await supabaseAdmin.from('notifications').insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      link,
+      metadata,
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error creating notification:', error);
+  }
+};
+
+// Helper function to get apartment owner's user ID
+const getApartmentOwnerUserId = async (apt_id) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('apartments')
+      .select('owner_id')
+      .eq('id', apt_id)
+      .single();
+
+    if (error) throw error;
+    return data?.owner_id;
+  } catch (error) {
+    console.error('Error fetching apartment owner:', error);
+    return null;
+  }
+};

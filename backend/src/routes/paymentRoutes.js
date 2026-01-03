@@ -11,7 +11,17 @@ const {
   getFeeBreakdown,
   comparePeriodsFinancial,
   getCollectionRateByPeriod,
-  getPeriodSummary
+  getPeriodSummary,
+  // Module 3.1: Quản lý doanh thu
+  getRevenueGrowth,
+  getRevenueByFeeType,
+  getRevenueByFloorOrArea,
+  // Module 3.2: Kiểm soát nợ đọng
+  getUnpaidApartments,
+  getTotalOutstandingDebt,
+  getDebtPaymentHistory,
+  // Module 3.3: Báo cáo quyết toán
+  getMonthlySettlementReport
 } = require('../controllers/paymentController');
 
 /**
@@ -336,5 +346,179 @@ router.get('/collection-rate', getCollectionRateByPeriod);
  *         description: Thông tin chi tiết tài chính của kỳ
  */
 router.get('/period-summary/:period', getPeriodSummary);
+
+// ==== MODULE 3.1: QUẢN LÝ DOANH THU ====
+
+/**
+ * @swagger
+ * /api/payments/revenue/growth:
+ *   get:
+ *     summary: 3.1.1 Biểu đồ tăng trưởng doanh thu
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: start_period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-01"
+ *       - in: query
+ *         name: end_period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: Doanh thu và tốc độ tăng trưởng theo tháng
+ */
+router.get('/revenue/growth', getRevenueGrowth);
+
+/**
+ * @swagger
+ * /api/payments/revenue/by-fee-type:
+ *   get:
+ *     summary: 3.1.2 Doanh thu theo loại phí
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: Phân tích doanh thu theo từng loại phí (điện, nước, dịch vụ, xe)
+ */
+router.get('/revenue/by-fee-type', getRevenueByFeeType);
+
+/**
+ * @swagger
+ * /api/payments/revenue/by-floor-area:
+ *   get:
+ *     summary: 3.1.3 Phân tích doanh thu theo tầng/khu
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *       - in: query
+ *         name: group_by
+ *         schema:
+ *           type: string
+ *           enum: [floor, area]
+ *           default: floor
+ *     responses:
+ *       200:
+ *         description: Phân tích doanh thu theo tầng hoặc khu vực
+ */
+router.get('/revenue/by-floor-area', getRevenueByFloorOrArea);
+
+// ==== MODULE 3.2: KIỂM SOÁT NỢ ĐỌNG ====
+
+/**
+ * @swagger
+ * /api/payments/debt/unpaid-apartments:
+ *   get:
+ *     summary: 3.2.1 Lọc căn hộ chưa đóng phí
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *       - in: query
+ *         name: floor
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: min_debt
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: max_debt
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           default: debt
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: Danh sách căn hộ chưa thanh toán đủ phí
+ */
+router.get('/debt/unpaid-apartments', getUnpaidApartments);
+
+/**
+ * @swagger
+ * /api/payments/debt/total-outstanding:
+ *   get:
+ *     summary: 3.2.2 Tính tổng nợ dư kiện
+ *     tags: [Payments & Financial]
+ *     responses:
+ *       200:
+ *         description: Tổng hợp nợ dư kiện toàn tòa nhà
+ */
+router.get('/debt/total-outstanding', getTotalOutstandingDebt);
+
+/**
+ * @swagger
+ * /api/payments/debt/payment-history/:apt_id:
+ *   get:
+ *     summary: 3.2.3 Theo dõi lịch sử trả nợ
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: path
+ *         name: apt_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "101"
+ *     responses:
+ *       200:
+ *         description: Lịch sử thanh toán và nợ của căn hộ
+ */
+router.get('/debt/payment-history/:apt_id', getDebtPaymentHistory);
+
+// ==== MODULE 3.3: BÁO CÁO QUYẾT TOÁN ====
+
+/**
+ * @swagger
+ * /api/payments/settlement/:period:
+ *   get:
+ *     summary: 3.3.1 Báo cáo quyết toán tháng
+ *     tags: [Payments & Financial]
+ *     parameters:
+ *       - in: path
+ *         name: period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2024-12"
+ *     responses:
+ *       200:
+ *         description: Báo cáo quyết toán đầy đủ (tổng hợp thu chi, chi tiết từng căn hộ)
+ */
+router.get('/settlement/:period', getMonthlySettlementReport);
 
 module.exports = router;

@@ -128,6 +128,121 @@ export interface CollectionRate {
   total_charges: number;
 }
 
+// Module 3.1: Quản lý doanh thu
+export interface RevenueGrowth {
+  period: string;
+  total_income: number;
+  growth_rate: number;
+  previous_income: number;
+}
+
+export interface RevenueByFeeType {
+  period?: string;
+  total_revenue: number;
+  breakdown: {
+    type: string;
+    name: string;
+    total: number;
+    percentage: number;
+    apartment_count: number;
+  }[];
+  details: any;
+}
+
+export interface RevenueByFloorOrArea {
+  period?: string;
+  group_by: string;
+  total_revenue: number;
+  groups: {
+    group: string | number;
+    total_revenue: number;
+    electric: number;
+    water: number;
+    service: number;
+    vehicles: number;
+    apartment_count: number;
+    percentage: number;
+    average_per_apartment: number;
+  }[];
+}
+
+// Module 3.2: Kiểm soát nợ đọng
+export interface UnpaidApartment {
+  apt_id: string;
+  period: string;
+  owner_name: string;
+  floor: number;
+  area?: string;
+  phone?: string;
+  total_bill: number;
+  paid_amount: number;
+  unpaid_amount: number;
+  pre_debt: number;
+  electric: number;
+  water: number;
+  service: number;
+  vehicles: number;
+  payment_status: string;
+}
+
+export interface TotalOutstandingDebt {
+  total_outstanding_debt: number;
+  total_pre_debt: number;
+  apartments_with_debt: number;
+  debt_by_period: {
+    period: string;
+    total_debt: number;
+    apartment_count: number;
+  }[];
+}
+
+export interface DebtPaymentHistory {
+  apt_id: string;
+  current_debt: number;
+  history: {
+    period: string;
+    billed: number;
+    pre_debt: number;
+    paid: number;
+    balance: number;
+    payment_count: number;
+    payments: any[];
+    status: string;
+  }[];
+}
+
+// Module 3.3: Báo cáo quyết toán
+export interface SettlementReport {
+  period: string;
+  generated_at: string;
+  summary: PeriodSummary & {
+    fee_breakdown: FeeBreakdown;
+  };
+  by_floor: FinancialByFloor[];
+  apartments: {
+    apt_id: string;
+    owner_name: string;
+    floor: number;
+    phone?: string;
+    electric: number;
+    water: number;
+    service: number;
+    vehicles: number;
+    pre_debt: number;
+    total_bill: number;
+    total_paid: number;
+    balance: number;
+    status: string;
+  }[];
+  statistics: {
+    total_apartments: number;
+    paid_apartments: number;
+    partial_paid: number;
+    unpaid_apartments: number;
+    total_outstanding: number;
+  };
+}
+
 /* =======================
    Financial API
 ======================= */
@@ -227,5 +342,92 @@ export const financialAPI = {
     return apiRequest<{
       data: PeriodSummary;
     }>(`/payments/period-summary/${period}`);
+  },
+
+  // ==== MODULE 3.1: QUẢN LÝ DOANH THU ====
+
+  /** GET /api/payments/revenue/growth */
+  getRevenueGrowth: async (startPeriod: string, endPeriod: string) => {
+    return apiRequest<{
+      data: RevenueGrowth[];
+    }>(`/payments/revenue/growth?start_period=${startPeriod}&end_period=${endPeriod}`);
+  },
+
+  /** GET /api/payments/revenue/by-fee-type */
+  getRevenueByFeeType: async (period?: string) => {
+    const url = period
+      ? `/payments/revenue/by-fee-type?period=${period}`
+      : '/payments/revenue/by-fee-type';
+    return apiRequest<{
+      data: RevenueByFeeType;
+    }>(url);
+  },
+
+  /** GET /api/payments/revenue/by-floor-area */
+  getRevenueByFloorOrArea: async (period?: string, groupBy: 'floor' | 'area' = 'floor') => {
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    params.append('group_by', groupBy);
+    
+    return apiRequest<{
+      data: RevenueByFloorOrArea;
+    }>(`/payments/revenue/by-floor-area?${params.toString()}`);
+  },
+
+  // ==== MODULE 3.2: KIỂM SOÁT NỢ ĐỌNG ====
+
+  /** GET /api/payments/debt/unpaid-apartments */
+  getUnpaidApartments: async (filters?: {
+    period?: string;
+    floor?: number;
+    min_debt?: number;
+    max_debt?: number;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    offset?: number;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.period) params.append('period', filters.period);
+    if (filters?.floor) params.append('floor', filters.floor.toString());
+    if (filters?.min_debt !== undefined) params.append('min_debt', filters.min_debt.toString());
+    if (filters?.max_debt !== undefined) params.append('max_debt', filters.max_debt.toString());
+    if (filters?.sort_by) params.append('sort_by', filters.sort_by);
+    if (filters?.sort_order) params.append('sort_order', filters.sort_order);
+    if (filters?.offset !== undefined) params.append('offset', filters.offset.toString());
+    if (filters?.limit !== undefined) params.append('limit', filters.limit.toString());
+
+    return apiRequest<{
+      data: UnpaidApartment[];
+      total: number;
+      summary: {
+        total_unpaid_apartments: number;
+        total_unpaid_amount: number;
+        total_pre_debt: number;
+      };
+    }>(`/payments/debt/unpaid-apartments?${params.toString()}`);
+  },
+
+  /** GET /api/payments/debt/total-outstanding */
+  getTotalOutstandingDebt: async () => {
+    return apiRequest<{
+      data: TotalOutstandingDebt;
+    }>('/payments/debt/total-outstanding');
+  },
+
+  /** GET /api/payments/debt/payment-history/:apt_id */
+  getDebtPaymentHistory: async (aptId: string) => {
+    return apiRequest<{
+      data: DebtPaymentHistory;
+    }>(`/payments/debt/payment-history/${aptId}`);
+  },
+
+  // ==== MODULE 3.3: BÁO CÁO QUYẾT TOÁN ====
+
+  /** GET /api/payments/settlement/:period */
+  getMonthlySettlementReport: async (period: string) => {
+    return apiRequest<{
+      data: SettlementReport;
+    }>(`/payments/settlement/${period}`);
   },
 };

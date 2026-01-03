@@ -238,18 +238,24 @@ exports.getBuildingFinancialSummary = async () => {
  * Trả về dữ liệu cho chart
  */
 exports.getIncomeByPeriod = async (startPeriod, endPeriod) => {
+  // Fetch all payments without period filter  
   const { data: payments, error } = await supabase
     .from('payments')
-    .select('period, amount, paid_at')
-    .gte('period', startPeriod)
-    .lte('period', endPeriod)
+    .select('period, amount')
     .order('period');
 
   if (error) throw error;
 
+  // Filter by period range manually
+  const filteredPayments = (payments || []).filter(p => {
+    if (!p.period) return false;
+    const period = p.period.toString();
+    return period >= startPeriod && period <= endPeriod;
+  });
+
   // Group by period
   const periodMap = {};
-  (payments || []).forEach(p => {
+  filteredPayments.forEach(p => {
     const period = p.period;
     if (!periodMap[period]) {
       periodMap[period] = {
@@ -265,14 +271,19 @@ exports.getIncomeByPeriod = async (startPeriod, endPeriod) => {
   // Get bills for the same periods
   const { data: bills, error: billError } = await supabase
     .from('bills')
-    .select('period, electric, water, service, vehicles, pre_debt')
-    .gte('period', startPeriod)
-    .lte('period', endPeriod);
+    .select('period, electric, water, service, vehicles, pre_debt');
 
   if (billError) throw billError;
 
+  // Filter bills by period range
+  const filteredBills = (bills || []).filter(b => {
+    if (!b.period) return false;
+    const period = b.period.toString();
+    return period >= startPeriod && period <= endPeriod;
+  });
+
   // Group bills by period
-  (bills || []).forEach(b => {
+  filteredBills.forEach(b => {
     const period = b.period;
     if (!periodMap[period]) {
       periodMap[period] = {
@@ -414,4 +425,458 @@ exports.getCollectionRateByPeriod = async (startPeriod, endPeriod) => {
     total_income: p.total_income,
     total_charges: p.total_charges || 0
   }));
+};
+
+/**
+ * 3.1.1 Biểu đồ tăng trưởng doanh thu
+ * Tính tốc độ tăng trưởng theo tháng
+ */
+exports.getRevenueGrowth = async (startPeriod, endPeriod) => {
+  const periods = await exports.getIncomeByPeriod(startPeriod, endPeriod);
+  
+  return periods.map((p, index) => {
+    const growth = index > 0 
+      ? periods[index - 1].total_income > 0
+        ? (((p.total_income - periods[index - 1].total_income) / periods[index - 1].total_income) * 100).toFixed(2)
+        : 0
+      : 0;
+    
+    return {
+      period: p.period,
+      total_income: p.total_income,
+      growth_rate: growth,
+      previous_income: index > 0 ? periods[index - 1].total_income : 0
+    };
+  });
+};
+
+/**
+ * 3.1.2 Doanh thu theo loại phí (chi tiết từng loại)
+ */
+exports.getRevenueByFeeType = async (period) => {
+  let query = supabase
+    .from('bills')
+    .select('apt_id, electric, water, service, vehicles');
+  
+  if (period) {
+    query = query.eq('period', period);
+  }
+
+  const { data: bills, error } = await query;
+
+  if (error) throw error;
+
+  const feeTypes = {
+    electric: { name: 'Tiền điện', total: 0, apartments: [] },
+    water: { name: 'Tiền nước', total: 0, apartments: [] },
+    service: { name: 'Phí dịch vụ', total: 0, apartments: [] },
+    vehicles: { name: 'Phí xe', total: 0, apartments: [] }
+  };
+
+  (bills || []).forEach(b => {
+    const apt_info = {
+      apt_id: b.apt_id,
+      owner_name: 'N/A',
+      floor: 'N/A'
+    };
+
+    if (b.electric > 0) {
+      feeTypes.electric.total += Number(b.electric);
+      feeTypes.electric.apartments.push({ ...apt_info, amount: b.electric });
+    }
+    if (b.water > 0) {
+      feeTypes.water.total += Number(b.water);
+      feeTypes.water.apartments.push({ ...apt_info, amount: b.water });
+    }
+    if (b.service > 0) {
+      feeTypes.service.total += Number(b.service);
+      feeTypes.service.apartments.push({ ...apt_info, amount: b.service });
+    }
+    if (b.vehicles > 0) {
+      feeTypes.vehicles.total += Number(b.vehicles);
+      feeTypes.vehicles.apartments.push({ ...apt_info, amount: b.vehicles });
+    }
+  });
+
+  const totalRevenue = Object.values(feeTypes).reduce((sum, type) => sum + type.total, 0);
+
+  return {
+    period,
+    total_revenue: totalRevenue,
+    breakdown: Object.entries(feeTypes).map(([key, value]) => ({
+      type: key,
+      name: value.name,
+      total: value.total,
+      percentage: totalRevenue > 0 ? ((value.total / totalRevenue) * 100).toFixed(2) : 0,
+      apartment_count: value.apartments.length
+    })),
+    details: feeTypes
+  };
+};
+
+/**
+ * 3.1.3 Phân tích doanh thu theo tầng/khu
+ */
+exports.getRevenueByFloorOrArea = async (period, groupBy = 'floor') => {
+  let query = supabase
+    .from('bills')
+    .select('apt_id, electric, water, service, vehicles');
+  
+  if (period) {
+    query = query.eq('period', period);
+  }
+
+  const { data: bills, error } = await query;
+
+  if (error) throw error;
+
+  const groupMap = {};
+
+  (bills || []).forEach(b => {
+    // Extract floor from apt_id (e.g., "501" -> floor 5)
+    const aptNumber = b.apt_id.toString();
+    const floor = aptNumber.length >= 2 ? aptNumber.substring(0, aptNumber.length - 2) || '0' : '0';
+    const groupKey = groupBy === 'floor' 
+      ? floor
+      : 'Khu A';
+    
+    if (!groupMap[groupKey]) {
+      groupMap[groupKey] = {
+        group: groupKey,
+        total_revenue: 0,
+        electric: 0,
+        water: 0,
+        service: 0,
+        vehicles: 0,
+        apartment_count: 0,
+        apartments: []
+      };
+    }
+
+    const totalApt = Number(b.electric || 0) + Number(b.water || 0) + 
+                     Number(b.service || 0) + Number(b.vehicles || 0);
+
+    groupMap[groupKey].total_revenue += totalApt;
+    groupMap[groupKey].electric += Number(b.electric || 0);
+    groupMap[groupKey].water += Number(b.water || 0);
+    groupMap[groupKey].service += Number(b.service || 0);
+    groupMap[groupKey].vehicles += Number(b.vehicles || 0);
+    groupMap[groupKey].apartment_count += 1;
+    groupMap[groupKey].apartments.push({
+      apt_id: b.apt_id,
+      owner_name: 'N/A',
+      total: totalApt
+    });
+  });
+
+  const result = Object.values(groupMap)
+    .sort((a, b) => b.total_revenue - a.total_revenue);
+
+  const totalRevenue = result.reduce((sum, g) => sum + g.total_revenue, 0);
+
+  return {
+    period,
+    group_by: groupBy,
+    total_revenue: totalRevenue,
+    groups: result.map(g => ({
+      ...g,
+      percentage: totalRevenue > 0 ? ((g.total_revenue / totalRevenue) * 100).toFixed(2) : 0,
+      average_per_apartment: g.apartment_count > 0 
+        ? (g.total_revenue / g.apartment_count).toFixed(0)
+        : 0
+    }))
+  };
+};
+
+/**
+ * 3.2.1 Lọc căn hộ chưa đóng phí (có thể lọc theo kỳ, tầng, mức nợ)
+ */
+exports.getUnpaidApartments = async (filters = {}) => {
+  const { period, floor, min_debt, max_debt, sort_by = 'debt', sort_order = 'desc', offset = 0, limit = 50 } = filters;
+
+  let query = supabase
+    .from('bills')
+    .select('apt_id, period, electric, water, service, vehicles, pre_debt, total');
+
+  if (period) {
+    query = query.eq('period', period);
+  }
+
+  const { data: bills, error } = await query;
+
+  if (error) throw error;
+
+  // Get all payments
+  const { data: payments, error: payError } = await supabase
+    .from('payments')
+    .select('apt_id, period, amount');
+
+  if (payError) throw payError;
+
+  // Calculate paid amount for each apartment-period
+  const paidMap = {};
+  (payments || []).forEach(p => {
+    const key = `${p.apt_id}-${p.period}`;
+    paidMap[key] = (paidMap[key] || 0) + Number(p.amount || 0);
+  });
+
+  // Filter unpaid apartments
+  let unpaidList = (bills || [])
+    .map(b => {
+      const key = `${b.apt_id}-${b.period}`;
+      const totalBill = Number(b.total || 0);
+      const paid = paidMap[key] || 0;
+      const unpaid = totalBill - paid;
+      
+      // Extract floor from apt_id
+      const aptNumber = b.apt_id.toString();
+      const aptFloor = aptNumber.length >= 2 ? parseInt(aptNumber.substring(0, aptNumber.length - 2)) || 0 : 0;
+
+      return {
+        apt_id: b.apt_id,
+        period: b.period,
+        owner_name: 'N/A',
+        floor: aptFloor,
+        area: 'N/A',
+        phone: 'N/A',
+        total_bill: totalBill,
+        paid_amount: paid,
+        unpaid_amount: unpaid > 0 ? unpaid : 0,
+        pre_debt: Number(b.pre_debt || 0),
+        electric: Number(b.electric || 0),
+        water: Number(b.water || 0),
+        service: Number(b.service || 0),
+        vehicles: Number(b.vehicles || 0),
+        payment_status: unpaid <= 0 ? 'Đã thanh toán' : unpaid < totalBill ? 'Thanh toán một phần' : 'Chưa thanh toán'
+      };
+    })
+    .filter(a => a.unpaid_amount > 0); // Only unpaid apartments
+
+  // Apply floor filter if specified
+  if (floor !== undefined) {
+    unpaidList = unpaidList.filter(a => a.floor === floor);
+  }
+
+  // Apply debt range filters
+  if (min_debt !== undefined) {
+    unpaidList = unpaidList.filter(a => a.unpaid_amount >= min_debt);
+  }
+
+  if (max_debt !== undefined) {
+    unpaidList = unpaidList.filter(a => a.unpaid_amount <= max_debt);
+  }
+
+  // Sort
+  unpaidList.sort((a, b) => {
+    const aValue = sort_by === 'debt' ? a.unpaid_amount : a[sort_by];
+    const bValue = sort_by === 'debt' ? b.unpaid_amount : b[sort_by];
+    return sort_order === 'desc' ? bValue - aValue : aValue - bValue;
+  });
+
+  const total = unpaidList.length;
+  const paginatedData = unpaidList.slice(offset, offset + limit);
+
+  return {
+    data: paginatedData,
+    total,
+    summary: {
+      total_unpaid_apartments: total,
+      total_unpaid_amount: unpaidList.reduce((sum, a) => sum + a.unpaid_amount, 0),
+      total_pre_debt: unpaidList.reduce((sum, a) => sum + a.pre_debt, 0)
+    }
+  };
+};
+
+/**
+ * 3.2.2 Tính tổng nợ dư kiện (tổng hợp toàn bộ)
+ */
+exports.getTotalOutstandingDebt = async () => {
+  const { data: bills, error: billError } = await supabase
+    .from('bills')
+    .select('apt_id, period, electric, water, service, vehicles, pre_debt, total');
+
+  if (billError) throw billError;
+
+  const { data: payments, error: payError } = await supabase
+    .from('payments')
+    .select('apt_id, period, amount');
+
+  if (payError) throw payError;
+
+  // Calculate paid amount for each apartment-period
+  const paidMap = {};
+  (payments || []).forEach(p => {
+    const key = `${p.apt_id}-${p.period}`;
+    paidMap[key] = (paidMap[key] || 0) + Number(p.amount || 0);
+  });
+
+  let totalOutstanding = 0;
+  let totalPreDebt = 0;
+  let apartmentsWithDebt = new Set();
+  const debtByPeriod = {};
+
+  (bills || []).forEach(b => {
+    const key = `${b.apt_id}-${b.period}`;
+    const totalBill = Number(b.total || 0);
+    const paid = paidMap[key] || 0;
+    const unpaid = totalBill - paid;
+
+    if (unpaid > 0) {
+      totalOutstanding += unpaid;
+      apartmentsWithDebt.add(b.apt_id);
+
+      if (!debtByPeriod[b.period]) {
+        debtByPeriod[b.period] = {
+          period: b.period,
+          total_debt: 0,
+          apartment_count: 0
+        };
+      }
+      debtByPeriod[b.period].total_debt += unpaid;
+      debtByPeriod[b.period].apartment_count += 1;
+    }
+
+    totalPreDebt += Number(b.pre_debt || 0);
+  });
+
+  return {
+    total_outstanding_debt: totalOutstanding,
+    total_pre_debt: totalPreDebt,
+    apartments_with_debt: apartmentsWithDebt.size,
+    debt_by_period: Object.values(debtByPeriod).sort((a, b) => b.period.localeCompare(a.period))
+  };
+};
+
+/**
+ * 3.2.3 Theo dõi lịch sử trả nợ của một căn hộ
+ */
+exports.getDebtPaymentHistory = async (apt_id) => {
+  const { data: payments, error: payError } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('apt_id', apt_id)
+    .order('paid_at', { ascending: false });
+
+  if (payError) throw payError;
+
+  const { data: bills, error: billError } = await supabase
+    .from('bills')
+    .select('*')
+    .eq('apt_id', apt_id)
+    .order('period', { ascending: false });
+
+  if (billError) throw billError;
+
+  // Calculate payment history with running debt balance
+  const history = [];
+  let runningDebt = 0;
+
+  // Combine bills and payments by period
+  const periods = new Set([
+    ...(bills || []).map(b => b.period),
+    ...(payments || []).map(p => p.period)
+  ]);
+
+  Array.from(periods).sort((a, b) => a.localeCompare(b)).forEach(period => {
+    const periodBills = (bills || []).filter(b => b.period === period);
+    const periodPayments = (payments || []).filter(p => p.period === period);
+
+    const totalBilled = periodBills.reduce((sum, b) => 
+      sum + Number(b.electric || 0) + Number(b.water || 0) + 
+      Number(b.service || 0) + Number(b.vehicles || 0), 0
+    );
+
+    const totalPaid = periodPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const preDebt = periodBills[0]?.pre_debt || 0;
+
+    runningDebt += totalBilled - totalPaid;
+
+    history.push({
+      period,
+      billed: totalBilled,
+      pre_debt: Number(preDebt),
+      paid: totalPaid,
+      balance: runningDebt,
+      payment_count: periodPayments.length,
+      payments: periodPayments,
+      status: totalPaid >= totalBilled ? 'Đã thanh toán đủ' : totalPaid > 0 ? 'Thanh toán một phần' : 'Chưa thanh toán'
+    });
+  });
+
+  return {
+    apt_id,
+    current_debt: runningDebt > 0 ? runningDebt : 0,
+    history: history.reverse() // Most recent first
+  };
+};
+
+/**
+ * 3.3.1 Tổng hợp thu chi tháng (báo cáo quyết toán)
+ */
+exports.getMonthlySettlementReport = async (period) => {
+  const summary = await exports.getPeriodSummary(period);
+  const feeBreakdown = await exports.getFeeBreakdown(period);
+  const floorData = await exports.getFinancialByFloor();
+  
+  const { data: bills, error: billError } = await supabase
+    .from('bills')
+    .select('apt_id, electric, water, service, vehicles, total, pre_debt')
+    .eq('period', period);
+
+  if (billError) throw billError;
+
+  const { data: payments, error: payError } = await supabase
+    .from('payments')
+    .select('apt_id, amount, paid_at, method')
+    .eq('period', period);
+
+  if (payError) throw payError;
+
+  // Calculate apartment-level details
+  const apartmentDetails = (bills || []).map(b => {
+    const aptPayments = (payments || []).filter(p => p.apt_id === b.apt_id);
+    const totalPaid = aptPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalBill = Number(b.total || 0);
+    
+    // Extract floor from apt_id
+    const aptNumber = b.apt_id.toString();
+    const floor = aptNumber.length >= 2 ? parseInt(aptNumber.substring(0, aptNumber.length - 2)) || 0 : 0;
+
+    return {
+      apt_id: b.apt_id,
+      owner_name: 'N/A',
+      floor: floor,
+      phone: 'N/A',
+      electric: Number(b.electric || 0),
+      water: Number(b.water || 0),
+      service: Number(b.service || 0),
+      vehicles: Number(b.vehicles || 0),
+      pre_debt: Number(b.pre_debt || 0),
+      total_bill: totalBill,
+      total_paid: totalPaid,
+      balance: totalBill - totalPaid,
+      status: totalPaid >= totalBill ? 'Đã thanh toán' : totalPaid > 0 ? 'Thanh toán một phần' : 'Chưa thanh toán'
+    };
+  });
+
+  return {
+    period,
+    generated_at: new Date().toISOString(),
+    summary: {
+      ...summary,
+      fee_breakdown: feeBreakdown
+    },
+    by_floor: floorData.filter(f => {
+      // Only include floors with data in this period
+      return apartmentDetails.some(a => a.floor === f.floor);
+    }),
+    apartments: apartmentDetails,
+    statistics: {
+      total_apartments: apartmentDetails.length,
+      paid_apartments: apartmentDetails.filter(a => a.status === 'Đã thanh toán').length,
+      partial_paid: apartmentDetails.filter(a => a.status === 'Thanh toán một phần').length,
+      unpaid_apartments: apartmentDetails.filter(a => a.status === 'Chưa thanh toán').length,
+      total_outstanding: apartmentDetails.reduce((sum, a) => sum + (a.balance > 0 ? a.balance : 0), 0)
+    }
+  };
 };

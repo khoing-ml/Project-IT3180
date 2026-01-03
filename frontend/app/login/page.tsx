@@ -127,7 +127,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm font-medium text-gray-700 mb-2">
               Tài khoản demo:
             </p>
@@ -139,7 +139,7 @@ export default function LoginPage() {
                 <strong>User:</strong> user / user123
               </p>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}

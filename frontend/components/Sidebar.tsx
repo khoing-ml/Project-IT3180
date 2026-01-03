@@ -13,7 +13,8 @@ import {
   Key,
   Activity,
   Building2,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +29,7 @@ export default function Sidebar() {
     { icon: LayoutDashboard, label: "Dashboard", active: pathname === "/", path: "/" },
     { icon: Building2, label: "Danh sách hộ dân", active: pathname === "/apartment", path: "/apartment" },
     { icon: BarChart3, label: "Thống kê tài chính", active: pathname === "/financial", path: "/financial" },
+    { icon: TrendingUp, label: "Phân tích tài chính", active: pathname === "/financial-stats", path: "/financial-stats" },
     { icon: Package, label: "Products", active: false, path: "/products" },
     { icon: Heart, label: "Favorites", active: false, path: "/favorites" },
     { icon: Inbox, label: "Inbox", active: false, path: "/inbox" },
