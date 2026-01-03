@@ -1,4 +1,4 @@
-const { supabase } = require('../config/supabase.js');
+const { supabaseAdmin: supabase } = require('../config/supabase.js');
 
 /**
  * Thống kê tổng đã thu của từng căn hộ (phân trang, sắp xếp giảm dần theo tiền thu)
@@ -256,7 +256,10 @@ exports.getIncomeByPeriod = async (startPeriod, endPeriod) => {
   // Group by period
   const periodMap = {};
   filteredPayments.forEach(p => {
-    const period = p.period;
+    // Convert YYYY-MM-DD to YYYY-MM for display
+    const periodDate = p.period.toString();
+    const period = periodDate.substring(0, 7); // Get YYYY-MM
+    
     if (!periodMap[period]) {
       periodMap[period] = {
         period,
@@ -316,7 +319,7 @@ exports.getIncomeByPeriod = async (startPeriod, endPeriod) => {
 exports.getFeeBreakdown = async (period) => {
   const query = supabase
     .from('bills')
-    .select('electric, water, service, vehicles');
+    .select('electric, water, service, vehicles, service_details, total, pre_debt');
   
   if (period) {
     query.eq('period', period);
@@ -335,10 +338,33 @@ exports.getFeeBreakdown = async (period) => {
   };
 
   (bills || []).forEach(b => {
-    breakdown.electric += Number(b.electric || 0);
-    breakdown.water += Number(b.water || 0);
-    breakdown.service += Number(b.service || 0);
-    breakdown.vehicles += Number(b.vehicles || 0);
+    // Try to get values from service_details JSON first, fallback to columns
+    if (b.service_details && typeof b.service_details === 'object') {
+      // Parse service_details for each fee type
+      const details = b.service_details;
+      
+      // Check for common keys (case-insensitive)
+      Object.keys(details).forEach(key => {
+        const lowerKey = key.toLowerCase();
+        const amount = Number(details[key]?.amount || 0);
+        
+        if (lowerKey.includes('điện') || lowerKey.includes('electric')) {
+          breakdown.electric += amount;
+        } else if (lowerKey.includes('nước') || lowerKey.includes('water')) {
+          breakdown.water += amount;
+        } else if (lowerKey.includes('vệ sinh') || lowerKey.includes('service') || lowerKey.includes('dịch vụ')) {
+          breakdown.service += amount;
+        } else if (lowerKey.includes('xe') || lowerKey.includes('vehicle') || lowerKey.includes('parking')) {
+          breakdown.vehicles += amount;
+        }
+      });
+    } else {
+      // Fallback to column values
+      breakdown.electric += Number(b.electric || 0);
+      breakdown.water += Number(b.water || 0);
+      breakdown.service += Number(b.service || 0);
+      breakdown.vehicles += Number(b.vehicles || 0);
+    }
   });
 
   breakdown.total = breakdown.electric + breakdown.water + breakdown.service + breakdown.vehicles;
@@ -371,18 +397,28 @@ exports.comparePeriodsFinancial = async (period1, period2) => {
 
 /**
  * Tổng hợp dữ liệu một kỳ
+ * @param {string} period - Format YYYY-MM
  */
 exports.getPeriodSummary = async (period) => {
+  // Payments table has period as DATE (YYYY-MM-DD), bills table has period as TEXT (YYYY-MM)
+  // Convert YYYY-MM to date range: YYYY-MM-01 to YYYY-MM-31
+  const startDate = `${period}-01`;
+  const [year, month] = period.split('-').map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+  
   const { data: payments, error: payError } = await supabase
     .from('payments')
-    .select('amount')
-    .eq('period', period);
+    .select('amount, period')
+    .gte('period', startDate)
+    .lt('period', endDate);
 
   if (payError) throw payError;
 
   const { data: bills, error: billError } = await supabase
     .from('bills')
-    .select('electric, water, service, vehicles, pre_debt')
+    .select('electric, water, service, vehicles, pre_debt, total')
     .eq('period', period);
 
   if (billError) throw billError;
@@ -393,13 +429,14 @@ exports.getPeriodSummary = async (period) => {
   let totalDebt = 0;
 
   (bills || []).forEach(b => {
-    totalCharges += Number(b.electric || 0) + Number(b.water || 0) + 
-                   Number(b.service || 0) + Number(b.vehicles || 0);
+    // Calculate new charges as total - pre_debt (since total = new charges + pre_debt)
+    const newCharges = Number(b.total || 0) - Number(b.pre_debt || 0);
+    totalCharges += newCharges;
     totalDebt += Number(b.pre_debt || 0);
   });
 
   return {
-    period,
+    period, // Return the input period format (YYYY-MM)
     total_income: totalIncome,
     total_charges: totalCharges,
     total_debt: totalDebt,

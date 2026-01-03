@@ -14,7 +14,8 @@ import {
   Activity,
   Building2,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,11 +31,6 @@ export default function Sidebar() {
     { icon: Building2, label: "Danh sách hộ dân", active: pathname === "/apartment", path: "/apartment" },
     { icon: BarChart3, label: "Thống kê tài chính", active: pathname === "/financial", path: "/financial" },
     { icon: TrendingUp, label: "Phân tích tài chính", active: pathname === "/financial-stats", path: "/financial-stats" },
-    { icon: Package, label: "Products", active: false, path: "/products" },
-    { icon: Heart, label: "Favorites", active: false, path: "/favorites" },
-    { icon: Inbox, label: "Inbox", active: false, path: "/inbox" },
-    { icon: List, label: "Order Lists", active: false, path: "/orders" },
-    { icon: Archive, label: "Product Stock", active: false, path: "/stock" },
   ];
 
 
@@ -211,6 +207,25 @@ export default function Sidebar() {
                   <ChevronRight className="w-4 h-4 opacity-70" />
                 )}
               </Link>
+
+              {/* Population Movements Management */}
+              <Link
+                href="/admin/population-movements"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                  pathname === '/admin/population-movements'
+                    ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/50"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                {pathname === '/admin/population-movements' && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-400 rounded-r-full"></div>
+                )}
+                <Users className={`w-5 h-5 ${pathname === '/admin/population-movements' ? 'text-white' : 'text-slate-400 group-hover:text-red-400'} transition-colors`} />
+                <span className="text-sm font-medium flex-1 text-left">Biến động nhân khẩu</span>
+                {pathname === '/admin/population-movements' && (
+                  <ChevronRight className="w-4 h-4 opacity-70" />
+                )}
+              </Link>
             </div>
           )}
 
@@ -258,6 +273,25 @@ export default function Sidebar() {
               <Key className={`w-5 h-5 ${pathname === '/my-cards' ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
               <span className="text-sm font-medium flex-1 text-left">Thẻ của tôi</span>
               {pathname === '/my-cards' && (
+                <ChevronRight className="w-4 h-4 opacity-70" />
+              )}
+            </Link>
+
+            {/* Population Movements */}
+            <Link
+              href="/population-movements"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                pathname === '/population-movements'
+                  ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {pathname === '/population-movements' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-400 rounded-r-full"></div>
+              )}
+              <Users className={`w-5 h-5 ${pathname === '/population-movements' ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'} transition-colors`} />
+              <span className="text-sm font-medium flex-1 text-left">Biến động nhân khẩu</span>
+              {pathname === '/population-movements' && (
                 <ChevronRight className="w-4 h-4 opacity-70" />
               )}
             </Link>

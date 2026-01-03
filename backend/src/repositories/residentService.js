@@ -29,6 +29,19 @@ exports.listAll = async () => {
   return data || [];
 };
 
+exports.getByUserId = async (user_id) => {
+  const { data, error } = await supabaseAdmin
+    .from('residents')
+    .select('*')
+    .eq('user_id', user_id)
+    .single();
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    throw error;
+  }
+  return data;
+};
+
 exports.createResident = async (resident) => {
   // resident: { apt_id, full_name, phone, id_number, is_owner, user_id }
   if (!resident || !resident.apt_id || !resident.full_name) {

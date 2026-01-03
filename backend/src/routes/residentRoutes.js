@@ -37,6 +37,27 @@ router.get('/all', residentController.listAll);
 
 /**
  * @swagger
+ * /residents/user/{user_id}:
+ *   get:
+ *     summary: Get resident by user_id
+ *     tags: [Residents]
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Resident data
+ *       404:
+ *         description: Resident not found
+ */
+router.get('/user/:user_id', residentController.getByUserId);
+
+/**
+ * @swagger
  * /residents:
  *   post:
  *     summary: Create a resident

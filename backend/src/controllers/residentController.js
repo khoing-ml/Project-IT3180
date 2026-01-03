@@ -1,16 +1,18 @@
 const residentService = require('../repositories/residentService');
 
+const mapResident = (r) => ({
+  ...r,
+  yearOfBirth: r.year_of_birth || null,
+  hometown: r.hometown || null,
+  gender: r.gender || null,
+  cccd: r.cccd || null
+});
+
 exports.list = async (req, res) => {
   try {
     const { apt_id } = req.params;
     if (!apt_id) throw new Error('Missing apt_id');
     const data = await residentService.listByApartment(apt_id);
-    const mapResident = (r) => ({
-      ...r,
-      yearOfBirth: r.year_of_birth || null,
-      hometown: r.hometown || null,
-      gender: r.gender || null
-    });
     res.status(200).json({ success: true, data: (data || []).map(mapResident) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -21,15 +23,24 @@ exports.list = async (req, res) => {
 exports.listAll = async (req, res) => {
   try {
     const data = await residentService.listAll();
-    const mapResident = (r) => ({
-      ...r,
-      yearOfBirth: r.year_of_birth || null,
-      hometown: r.hometown || null,
-      gender: r.gender || null
-    });
     res.status(200).json({ success: true, data: (data || []).map(mapResident) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get resident by user_id
+exports.getByUserId = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    if (!user_id) throw new Error('Missing user_id');
+    const data = await residentService.getByUserId(user_id);
+    if (!data) {
+      return res.status(404).json({ success: false, message: 'Resident not found for this user' });
+    }
+    res.status(200).json({ success: true, data: mapResident(data) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 };
 
@@ -84,12 +95,7 @@ exports.create = async (req, res) => {
     }
 
     const data = await residentService.createResident(payload);
-    const mapped = Object.assign({}, data, {
-      yearOfBirth: data.year_of_birth || null,
-      hometown: data.hometown || null,
-      gender: data.gender || null
-    });
-    res.status(201).json({ success: true, data: mapped });
+    res.status(201).json({ success: true, data: mapResident(data) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -128,12 +134,7 @@ exports.update = async (req, res) => {
     }
 
     const data = await residentService.updateResident(id, payload);
-    const mapped = Object.assign({}, data, {
-      yearOfBirth: data.year_of_birth || null,
-      hometown: data.hometown || null,
-      gender: data.gender || null
-    });
-    res.status(200).json({ success: true, data: mapped });
+    res.status(200).json({ success: true, data: mapResident(data) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

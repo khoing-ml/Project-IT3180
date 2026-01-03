@@ -112,7 +112,7 @@ export default function DebtControl() {
     <div className="space-y-6">
       {/* 3.2.2 Tổng nợ dư kiện */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-red-500">
+        <Card className="bg-white border-l-4 border-red-500">
           <CardContent className="pt-6">
             <div className="text-sm text-gray-600 mb-1">Tổng nợ dư kiện</div>
             <div className="text-2xl font-bold text-red-600">
@@ -120,7 +120,7 @@ export default function DebtControl() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-orange-500">
+        <Card className="bg-white border-l-4 border-orange-500">
           <CardContent className="pt-6">
             <div className="text-sm text-gray-600 mb-1">Nợ cũ (Pre-debt)</div>
             <div className="text-2xl font-bold text-orange-600">
@@ -128,7 +128,7 @@ export default function DebtControl() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-purple-500">
+        <Card className="bg-white border-l-4 border-purple-500">
           <CardContent className="pt-6">
             <div className="text-sm text-gray-600 mb-1">Căn hộ có nợ</div>
             <div className="text-2xl font-bold text-purple-600">
@@ -136,7 +136,7 @@ export default function DebtControl() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-blue-500">
+        <Card className="bg-white border-l-4 border-blue-500">
           <CardContent className="pt-6">
             <div className="text-sm text-gray-600 mb-1">Nợ hiện tại (từ filters)</div>
             <div className="text-2xl font-bold text-blue-600">

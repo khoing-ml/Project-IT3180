@@ -16,23 +16,23 @@ export default function FinancialStatsPage() {
 
   return (
     <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="ml-72 mr-4">
           <Header />
-          <main className="flex-1 p-6">
-            <div className="max-w-7xl mx-auto">
+          <main className="p-6">
+            <div className="space-y-6">
               {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-4 shadow-lg">
+                    <BarChart3 className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                       Thống kê tài chính
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-slate-400 mt-1">
                       Quản lý doanh thu, kiểm soát nợ và báo cáo quyết toán
                     </p>
                   </div>
@@ -41,14 +41,14 @@ export default function FinancialStatsPage() {
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
-                  <TabsTrigger value="revenue" className="text-sm">
+                <TabsList className="bg-slate-800 border border-slate-700 p-1 grid w-full grid-cols-3 lg:w-[600px]">
+                  <TabsTrigger value="revenue" className="text-sm data-[state=active]:bg-slate-700 data-[state=active]:text-slate-100 text-slate-400">
                     📈 Quản lý doanh thu
                   </TabsTrigger>
-                  <TabsTrigger value="debt" className="text-sm">
+                  <TabsTrigger value="debt" className="text-sm data-[state=active]:bg-slate-700 data-[state=active]:text-slate-100 text-slate-400">
                     ⚠️ Kiểm soát nợ đọng
                   </TabsTrigger>
-                  <TabsTrigger value="settlement" className="text-sm">
+                  <TabsTrigger value="settlement" className="text-sm data-[state=active]:bg-slate-700 data-[state=active]:text-slate-100 text-slate-400">
                     📊 Báo cáo quyết toán
                   </TabsTrigger>
                 </TabsList>

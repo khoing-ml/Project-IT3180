@@ -75,7 +75,10 @@ export default function RevenueManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
+          <p className="text-slate-400">Đang tải dữ liệu...</p>
+        </div>
       </div>
     );
   }
@@ -90,40 +93,40 @@ export default function RevenueManagement() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
+      <Card className="bg-slate-800/90 border border-slate-700 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
+          <CardTitle className="text-slate-200 flex items-center gap-2">
+            <Filter className="w-5 h-5 text-slate-400" />
             Bộ lọc
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Từ tháng</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Từ tháng</label>
               <input
                 type="month"
                 value={startPeriod}
                 onChange={(e) => setStartPeriod(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Đến tháng</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Đến tháng</label>
               <input
                 type="month"
                 value={endPeriod}
                 onChange={(e) => setEndPeriod(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Tháng phân tích</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Tháng phân tích</label>
               <input
                 type="month"
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -131,9 +134,9 @@ export default function RevenueManagement() {
       </Card>
 
       {/* 3.1.1 Biểu đồ tăng trưởng */}
-      <Card>
+      <Card className="bg-white border border-slate-700 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-green-600" />
             3.1.1 Biểu đồ tăng trưởng doanh thu
           </CardTitle>
@@ -173,7 +176,7 @@ export default function RevenueManagement() {
 
           {/* Summary */}
           <div className="mt-4 grid grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="text-sm text-gray-600">Doanh thu trung bình</div>
               <div className="text-xl font-bold text-blue-600">
                 {formatCurrency(
@@ -181,7 +184,7 @@ export default function RevenueManagement() {
                 )}
               </div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="text-sm text-gray-600">Tăng trưởng trung bình</div>
               <div className="text-xl font-bold text-green-600">
                 {(
@@ -191,7 +194,7 @@ export default function RevenueManagement() {
                 %
               </div>
             </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
+            <div className="text-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
               <div className="text-sm text-gray-600">Tổng doanh thu</div>
               <div className="text-xl font-bold text-purple-600">
                 {formatCurrency(growthData.reduce((sum, d) => sum + d.total_income, 0))}
@@ -202,9 +205,9 @@ export default function RevenueManagement() {
       </Card>
 
       {/* 3.1.2 Doanh thu theo loại phí */}
-      <Card>
+      <Card className="bg-white border border-slate-700 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-yellow-600" />
             3.1.2 Doanh thu theo loại phí ({selectedPeriod})
           </CardTitle>
@@ -240,7 +243,7 @@ export default function RevenueManagement() {
                 {feeTypeData?.breakdown.map((item, index) => (
                   <div
                     key={item.type}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -273,9 +276,9 @@ export default function RevenueManagement() {
       </Card>
 
       {/* 3.1.3 Phân tích theo tầng/khu */}
-      <Card>
+      <Card className="bg-white border border-slate-700 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <BarChart className="w-5 h-5 text-indigo-600" />
             3.1.3 Phân tích doanh thu theo {groupBy === "floor" ? "tầng" : "khu"}
           </CardTitle>

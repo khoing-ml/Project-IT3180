@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { UserRole } from "@/types/auth";
 import Sidebar from "@/components/Sidebar";
@@ -48,15 +48,59 @@ export default function FinancialPage() {
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Date range for charts
+  // Date range for charts - initialize with memo to ensure stable values
   const currentDate = new Date();
-  const [startPeriod, setStartPeriod] = useState(format(subMonths(currentDate, 11), 'yyyy-MM'));
-  const [endPeriod, setEndPeriod] = useState(format(currentDate, 'yyyy-MM'));
-  const [selectedPeriod, setSelectedPeriod] = useState(format(currentDate, 'yyyy-MM'));
+  const defaultStartPeriod = format(subMonths(currentDate, 11), 'yyyy-MM');
+  const defaultEndPeriod = format(currentDate, 'yyyy-MM');
+  const defaultComparisonPeriod1 = format(subMonths(currentDate, 1), 'yyyy-MM');
+  const defaultComparisonPeriod2 = format(currentDate, 'yyyy-MM');
+  
+  const [startPeriod, setStartPeriod] = useState(defaultStartPeriod);
+  const [endPeriod, setEndPeriod] = useState(defaultEndPeriod);
+  const [selectedPeriod, setSelectedPeriod] = useState(defaultEndPeriod);
   
   // Comparison periods
-  const [comparisonPeriod1, setComparisonPeriod1] = useState(format(subMonths(currentDate, 1), 'yyyy-MM'));
-  const [comparisonPeriod2, setComparisonPeriod2] = useState(format(currentDate, 'yyyy-MM'));
+  const [comparisonPeriod1, setComparisonPeriod1] = useState(defaultComparisonPeriod1);
+  const [comparisonPeriod2, setComparisonPeriod2] = useState(defaultComparisonPeriod2);
+
+  const fetchChartData = useCallback(async () => {
+    try {
+      const [incomeRes, feeRes, rateRes] = await Promise.all([
+        financialAPI.getIncomeByPeriod(startPeriod, endPeriod),
+        financialAPI.getFeeBreakdown(selectedPeriod),
+        financialAPI.getCollectionRateByPeriod(startPeriod, endPeriod),
+      ]);
+
+      setIncomeByPeriod(incomeRes?.data ?? []);
+      setFeeBreakdown(feeRes?.data ?? null);
+      setCollectionRate(rateRes?.data ?? []);
+    } catch (error: any) {
+      console.error("Chart data fetch error:", error.message);
+    }
+  }, [startPeriod, endPeriod, selectedPeriod]);
+
+  const fetchComparison = useCallback(async () => {
+    if (!comparisonPeriod1 || !comparisonPeriod2) {
+      console.warn('Comparison periods not set, skipping fetch');
+      return;
+    }
+    
+    // Validate period format
+    const periodRegex = /^\d{4}-\d{2}$/;
+    if (!periodRegex.test(comparisonPeriod1) || !periodRegex.test(comparisonPeriod2)) {
+      console.error('Invalid period format. Expected YYYY-MM, got:', { comparisonPeriod1, comparisonPeriod2 });
+      return;
+    }
+    
+    try {
+      console.log('Fetching comparison for periods:', comparisonPeriod1, comparisonPeriod2);
+      const compRes = await financialAPI.comparePeriodsFinancial(comparisonPeriod1, comparisonPeriod2);
+      setComparison(compRes?.data ?? null);
+    } catch (error: any) {
+      console.error("Comparison fetch error:", error.message);
+      // Don't show alert to avoid interrupting user experience
+    }
+  }, [comparisonPeriod1, comparisonPeriod2]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -85,36 +129,6 @@ export default function FinancialPage() {
     }
   };
 
-  const fetchChartData = async () => {
-    try {
-      const [incomeRes, feeRes, rateRes] = await Promise.all([
-        financialAPI.getIncomeByPeriod(startPeriod, endPeriod),
-        financialAPI.getFeeBreakdown(selectedPeriod),
-        financialAPI.getCollectionRateByPeriod(startPeriod, endPeriod),
-      ]);
-
-      setIncomeByPeriod(incomeRes?.data ?? []);
-      setFeeBreakdown(feeRes?.data ?? null);
-      setCollectionRate(rateRes?.data ?? []);
-    } catch (error: any) {
-      console.error("Chart data fetch error:", error.message);
-    }
-  };
-
-  const fetchComparison = async () => {
-    if (!comparisonPeriod1 || !comparisonPeriod2) {
-      console.warn('Comparison periods not set, skipping fetch');
-      return;
-    }
-    
-    try {
-      const compRes = await financialAPI.comparePeriodsFinancial(comparisonPeriod1, comparisonPeriod2);
-      setComparison(compRes?.data ?? null);
-    } catch (error: any) {
-      console.error("Comparison fetch error:", error.message);
-    }
-  };
-
   const exportToCSV = () => {
     const csvData = [
       ['Mã căn hộ', 'Chủ hộ', 'Tổng đã thanh toán'],
@@ -132,21 +146,8 @@ export default function FinancialPage() {
   // Initial load only
   useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Fetch comparison when periods change
-  useEffect(() => {
-    if (comparisonPeriod1 && comparisonPeriod2) {
-      fetchComparison();
-    }
-  }, [comparisonPeriod1, comparisonPeriod2]);
-
-  // Refetch chart data when period changes
-  useEffect(() => {
-    if (startPeriod && endPeriod) {
-      fetchChartData();
-    }
-  }, [startPeriod, endPeriod, selectedPeriod]);
 
   return (
     <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
@@ -287,6 +288,15 @@ export default function FinancialPage() {
                             />
                           </div>
                         </div>
+                        <div className="mt-4 flex justify-end">
+                          <Button 
+                            onClick={fetchChartData} 
+                            className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md text-white"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Cập nhật biểu đồ
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
 
@@ -328,6 +338,15 @@ export default function FinancialPage() {
                               className="w-full px-3 py-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                           </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button 
+                            onClick={fetchComparison} 
+                            className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md text-white"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            So sánh ngay
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
