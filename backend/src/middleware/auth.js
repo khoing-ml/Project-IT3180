@@ -159,6 +159,32 @@ const requireAccountant = async (req, res, next) => {
 };
 
 /**
+ * Middleware to check if user has accounting role
+ * Accounting role has access to bills, payments, and financial reports
+ */
+const requireAccounting = (req, res, next) => {
+  if (!req.profile || req.profile.role !== 'accounting') {
+    return res.status(403).json({ 
+      error: 'Access denied. Accounting privileges required.' 
+    });
+  }
+  next();
+};
+
+/**
+ * Middleware to check if user has admin or accounting role
+ * Useful for financial management routes
+ */
+const requireAdminOrAccounting = (req, res, next) => {
+  if (!req.profile || !['admin', 'accounting'].includes(req.profile.role)) {
+    return res.status(403).json({ 
+      error: 'Access denied. Admin or Accounting privileges required.' 
+    });
+  }
+  next();
+};
+
+/**
  * Middleware to check if user is a cashier
  */
 const requireCashier = async (req, res, next) => {
@@ -195,6 +221,8 @@ module.exports = {
   verifyToken,
   requireAdmin,
   requireAdminOrManager,
+  requireAccounting,
+  requireAdminOrAccounting,
   requireEmployee,
   requireAccountant,
   requireCashier

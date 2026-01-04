@@ -66,21 +66,35 @@ exports.getIncomeByFloor = async () => {
  * Thống kê tài chính chi tiết theo tầng (dựa trên hóa đơn hiện tại trong bảng bills)
  */
 exports.getFinancialByFloor = async () => {
+  // Get all payments
   const { data: payments, error: payError } = await supabase
     .from('payments')
-    .select('amount, apartments!inner(floor)');
+    .select('apt_id, amount');
 
   if (payError) throw payError;
 
+  // Get all apartments for floor mapping
+  const { data: apartments, error: aptError } = await supabase
+    .from('apartments')
+    .select('apt_id, floor');
+  
+  if (aptError) throw aptError;
+
+  // Create apt_id -> floor mapping
+  const floorMap = (apartments || []).reduce((acc, apt) => {
+    acc[apt.apt_id] = apt.floor ?? 'Không xác định';
+    return acc;
+  }, {});
+
   const paidMap = (payments || []).reduce((acc, p) => {
-    const floor = p.apartments.floor ?? 'Không xác định';
+    const floor = floorMap[p.apt_id] ?? 'Không xác định';
     acc[floor] = (acc[floor] || 0) + Number(p.amount || 0);
     return acc;
   }, {});
 
   const { data: bills, error: billError } = await supabase
     .from('bills')
-    .select('electric, water, service, vehicles, pre_debt, apartments!inner(floor)');
+    .select('apt_id, electric, water, service, vehicles, pre_debt');
 
   if (billError) throw billError;
 
@@ -88,7 +102,7 @@ exports.getFinancialByFloor = async () => {
   const debtMap = {};  
 
   (bills || []).forEach(b => {
-    const floor = b.apartments.floor ?? 'Không xác định';
+    const floor = floorMap[b.apt_id] ?? 'Không xác định';
     const currentNew = Number(b.electric || 0) + Number(b.water || 0) + Number(b.service || 0) + Number(b.vehicles || 0);
     const totalDue = currentNew + Number(b.pre_debt || 0);
 
@@ -116,25 +130,32 @@ exports.getFinancialByFloor = async () => {
  * Danh sách các căn hộ đang nợ (pre_debt > 0 trong bảng bills hiện tại)
  */
 exports.getApartmentsInDebt = async (offset = 0, limit = 20) => {
-  const { data: bills, error } = await supabase
+  // Get bills with debt
+  const { data: bills, error: billsError } = await supabase
     .from('bills')
-    .select(`
-      apt_id,
-      pre_debt,
-      apartments (
-        owner_name,
-        floor
-      )
-    `)
+    .select('apt_id, pre_debt')
     .gt('pre_debt', 0);
 
-  if (error) throw error;
+  if (billsError) throw billsError;
+
+  // Get apartments info separately
+  const { data: apartments, error: aptError } = await supabase
+    .from('apartments')
+    .select('apt_id, owner_name, floor');
+
+  if (aptError) throw aptError;
+
+  // Create mapping
+  const aptMap = (apartments || []).reduce((acc, apt) => {
+    acc[apt.apt_id] = apt;
+    return acc;
+  }, {});
 
   const debtList = (bills || [])
     .map(b => ({
       apt_id: b.apt_id,
-      owner_name: b.apartments.owner_name,
-      floor: b.apartments.floor,
+      owner_name: aptMap[b.apt_id]?.owner_name || 'N/A',
+      floor: aptMap[b.apt_id]?.floor || 0,
       debt: Number(b.pre_debt)
     }))
     .sort((a, b) => b.debt - a.debt);
@@ -400,21 +421,17 @@ exports.comparePeriodsFinancial = async (period1, period2) => {
  * @param {string} period - Format YYYY-MM
  */
 exports.getPeriodSummary = async (period) => {
-  // Payments table has period as DATE (YYYY-MM-DD), bills table has period as TEXT (YYYY-MM)
-  // Convert YYYY-MM to date range: YYYY-MM-01 to YYYY-MM-31
-  const startDate = `${period}-01`;
-  const [year, month] = period.split('-').map(Number);
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-  const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
-  
+  // Both bills and payments use period as TEXT (YYYY-MM format)
+  // Query payments directly using the period string
   const { data: payments, error: payError } = await supabase
     .from('payments')
     .select('amount, period')
-    .gte('period', startDate)
-    .lt('period', endDate);
+    .eq('period', period);
 
-  if (payError) throw payError;
+  if (payError) {
+    console.error('Error fetching payments:', payError);
+    throw payError;
+  }
 
   const { data: bills, error: billError } = await supabase
     .from('bills')
@@ -851,9 +868,19 @@ exports.getDebtPaymentHistory = async (apt_id) => {
  * 3.3.1 Tổng hợp thu chi tháng (báo cáo quyết toán)
  */
 exports.getMonthlySettlementReport = async (period) => {
+  console.log('[Settlement] Starting report for period:', period);
+  
+  console.log('[Settlement] Fetching period summary...');
   const summary = await exports.getPeriodSummary(period);
+  console.log('[Settlement] Period summary OK');
+  
+  console.log('[Settlement] Fetching fee breakdown...');
   const feeBreakdown = await exports.getFeeBreakdown(period);
+  console.log('[Settlement] Fee breakdown OK');
+  
+  console.log('[Settlement] Fetching floor data...');
   const floorData = await exports.getFinancialByFloor();
+  console.log('[Settlement] Floor data OK');
   
   const { data: bills, error: billError } = await supabase
     .from('bills')

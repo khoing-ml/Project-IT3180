@@ -28,7 +28,7 @@ const getApartmentOwnerUserId = async (apt_id) => {
     const { data, error } = await supabaseAdmin
       .from('apartments')
       .select('owner_id')
-      .eq('id', apt_id)
+      .eq('apt_id', apt_id)
       .single();
 
     if (error) throw error;
